@@ -1,0 +1,960 @@
+<title>LonkedOut</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,600;0,800;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --ground:#EEF0EC; --surface:#FFFFFF; --surface2:#F6F7F5; --line:#D6DBD7;
+  --ink:#1C262B; --ink2:#4F5D63; --ink3:#7C8A90;
+  --accent:#0E6E8C; --accent-ink:#FFFFFF; --accent-soft:#DCEBF0;
+  --gold:#A87700; --gold-soft:#F6ECCF;
+  --otw:#2E7D32; --otw-soft:#DDEFDB;
+  --bad:#B3261E; --bad-soft:#F7DEDC;
+  --burn:#D9641E; --dig:#6A4C93;
+  --note:#F4F0E2; --note-ink:#4A4020; --note-line:#D8CFA8;
+  --shadow:0 1px 2px rgba(20,30,35,.08),0 0 0 1px rgba(20,30,35,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#111719; --surface:#1A2226; --surface2:#20292E; --line:#2E3A40;
+    --ink:#E6EBEC; --ink2:#A9B5B9; --ink3:#76858B;
+    --accent:#4FA9C7; --accent-ink:#0B1417; --accent-soft:#173540;
+    --gold:#E3B64A; --gold-soft:#3A3012;
+    --otw:#7CCB80; --otw-soft:#1E3A22;
+    --bad:#F28B82; --bad-soft:#3F1F1D;
+    --burn:#F08A4B; --dig:#B394E0;
+    --note:#26251B; --note-ink:#E2D9B4; --note-line:#4B4630;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#111719; --surface:#1A2226; --surface2:#20292E; --line:#2E3A40;
+  --ink:#E6EBEC; --ink2:#A9B5B9; --ink3:#76858B;
+  --accent:#4FA9C7; --accent-ink:#0B1417; --accent-soft:#173540;
+  --gold:#E3B64A; --gold-soft:#3A3012;
+  --otw:#7CCB80; --otw-soft:#1E3A22;
+  --bad:#F28B82; --bad-soft:#3F1F1D;
+  --burn:#F08A4B; --dig:#B394E0;
+  --note:#26251B; --note-ink:#E2D9B4; --note-line:#4B4630;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05);
+}
+*{box-sizing:border-box}
+html{font-size:15px}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45;padding-bottom:64px}
+a{color:var(--accent)}
+button{font:inherit;cursor:pointer}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.2}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+
+/* ── top bar ─────────────────────────────── */
+.top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-in{max-width:1128px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:6px 16px}
+.logo{display:flex;align-items:baseline;gap:2px;font-weight:800;font-size:22px;letter-spacing:-.5px;color:var(--accent);text-decoration:none;white-space:nowrap;background:none;border:0;padding:0}
+.logo b{display:inline-block;background:var(--accent);color:var(--accent-ink);border-radius:4px 4px 4px 10px;padding:0 6px;transform:rotate(-7deg) translateY(2px);font-weight:800;text-decoration:line-through;text-decoration-thickness:2px}
+.searchwrap{position:relative;flex:0 1 300px}
+.search{display:flex;align-items:center;gap:8px;background:var(--accent-soft);border-radius:4px;padding:6px 10px;color:var(--ink2);font-size:13px}
+.search input{border:0;background:transparent;color:var(--ink);width:100%;font:inherit;outline:none}
+.sresults{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);z-index:30;display:none;font-size:13px;max-height:340px;overflow:auto}
+.sresults.show{display:block}
+.sresults button{display:flex;gap:8px;align-items:center;width:100%;text-align:left;background:none;border:0;padding:8px 10px;color:var(--ink)}
+.sresults button:hover{background:var(--surface2)}
+.sresults .sh{padding:6px 10px;font-size:11px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em}
+.tabs{display:flex;gap:2px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;border:0;background:none;color:var(--ink2);font-size:11px;border-bottom:2px solid transparent;min-width:66px}
+.tab svg{width:22px;height:22px;fill:currentColor}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tab.gold{color:var(--gold)}
+.badge{position:absolute;top:2px;right:10px;background:var(--bad);color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:0 5px;line-height:16px}
+
+/* ── score strip ─────────────────────────────── */
+.strip{background:var(--surface2);border-top:1px solid var(--line)}
+.strip-in{max-width:1128px;margin:0 auto;padding:5px 16px;display:flex;gap:16px;align-items:center;font-size:12px;flex-wrap:wrap}
+.stat{display:flex;align-items:center;gap:6px;min-width:150px;flex:1}
+.stat .bar{flex:1;height:7px;background:var(--line);border-radius:4px;overflow:hidden}
+.stat .bar i{display:block;height:100%;transition:width .4s}
+.stat b{font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+.stat.clout .bar i{background:var(--accent)}
+.stat.burn .bar i{background:var(--burn)}
+.stat.dig .bar i{background:var(--dig)}
+.trophy{background:none;border:1px solid var(--line);border-radius:14px;padding:2px 10px;font-size:12px;color:var(--ink2)}
+
+/* ── layout ─────────────────────────────── */
+.page{max-width:1128px;margin:20px auto;padding:0 16px;display:grid;grid-template-columns:225px minmax(0,1fr) 300px;gap:24px}
+.page.wide{grid-template-columns:minmax(0,1fr)}
+.page.two{grid-template-columns:minmax(0,1fr) 300px}
+@media (max-width:960px){.page,.page.two{grid-template-columns:minmax(0,1fr)}.rail{display:none}}
+.card{background:var(--surface);border-radius:8px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.card-body{padding:14px 16px}
+.card h2{font-size:16px;font-weight:600}
+.muted{color:var(--ink2);font-size:13px}
+.tiny{color:var(--ink3);font-size:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:20px;padding:6px 14px;font-weight:600;font-size:14px}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.gold{background:var(--gold);border-color:var(--gold);color:#1a1400}
+.btn.ghost{border-color:transparent;color:var(--ink2)}
+.btn.sm{padding:3px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.pill{display:inline-block;font-size:11px;font-weight:600;border-radius:4px;padding:1px 6px;vertical-align:middle}
+.pill.gold{background:var(--gold-soft);color:var(--gold)}
+.pill.otw{background:var(--otw-soft);color:var(--otw)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.stack{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;gap:10px}
+.avatar{width:48px;height:48px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;color:#fff;font-size:16px;position:relative;cursor:pointer;border:0;padding:0;font-family:inherit}
+.avatar.sm{width:36px;height:36px;font-size:13px}
+.avatar.otw::after{content:"";position:absolute;inset:-3px;border-radius:50%;border:4px solid var(--otw)}
+.avatar.otw::before{content:"#OPENTOWORK";position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:var(--otw);color:#fff;font-size:6px;padding:0 4px;border-radius:6px;letter-spacing:.3px;font-weight:800;z-index:1}
+.namebtn{background:none;border:0;padding:0;font:inherit;font-weight:600;color:var(--ink);cursor:pointer}
+.namebtn:hover{text-decoration:underline}
+.tag{color:var(--accent);background:none;border:0;padding:0;font:inherit;font-weight:600;cursor:pointer}
+
+/* ── exhibit notes ── */
+.exhibit{background:var(--note);color:var(--note-ink);border:1px dashed var(--note-line);border-radius:6px;margin:10px 16px 14px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;line-height:1.5}
+.exhibit summary{cursor:pointer;padding:7px 10px;list-style:none;display:flex;gap:8px;align-items:center;font-weight:600}
+.exhibit summary::-webkit-details-marker{display:none}
+.exhibit summary::before{content:"◧";font-size:13px}
+.exhibit[open] summary::before{content:"◨"}
+.exhibit summary .etag{margin-left:auto;font-weight:400;opacity:.7;font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.exhibit .ex-body{padding:0 10px 10px;border-top:1px dashed var(--note-line);padding-top:8px}
+.exhibit p{margin:0 0 6px}
+.exhibit a{color:inherit;text-decoration:underline;text-underline-offset:2px;word-break:break-word}
+.exhibit .src{opacity:.8;font-size:11px}
+
+/* ── composer ─────────────────────────────── */
+textarea,input.txt,select{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;background:var(--surface2);color:var(--ink)}
+textarea{resize:vertical;min-height:90px}
+.meter{height:10px;background:var(--surface2);border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);transition:width .4s ease}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface2);border-radius:16px;padding:3px 10px;font-size:12px;color:var(--ink2)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+
+/* ── posts ─────────────────────────────── */
+.post{padding:12px 16px 6px}
+.post .head{display:flex;gap:10px;align-items:flex-start}
+.post .name{font-weight:600;font-size:14px}
+.post .headline{color:var(--ink2);font-size:12px;line-height:1.3}
+.post .body{white-space:pre-wrap;margin:10px 0 6px;font-size:14px}
+.post .body.clamp{max-height:120px;overflow:hidden;position:relative}
+.post .body.clamp::after{content:"";position:absolute;inset:auto 0 0;height:40px;background:linear-gradient(transparent,var(--surface))}
+.more{background:none;border:0;color:var(--ink2);padding:0;font-weight:600;font-size:13px}
+.actions{display:flex;justify-content:space-around;border-top:1px solid var(--line);margin-top:8px;padding-top:4px;position:relative}
+.actions button{background:none;border:0;color:var(--ink2);padding:8px 6px;font-weight:600;font-size:13px;border-radius:4px;display:flex;align-items:center;gap:6px}
+.actions button:hover{background:var(--surface2)}
+.reacts{position:absolute;top:-40px;left:8px;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:4px 8px;display:flex;gap:4px;box-shadow:var(--shadow);z-index:4}
+.reacts button{font-size:20px;padding:2px 4px}
+.kebab{margin-left:auto;background:none;border:0;color:var(--ink2);font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
+.menu{position:absolute;right:12px;top:24px;background:var(--surface);border:1px solid var(--line);border-radius:6px;box-shadow:var(--shadow);z-index:5;min-width:230px;font-size:13px}
+.menu button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 12px;color:var(--ink)}
+.menu button:hover{background:var(--surface2)}
+.social{font-size:12px;color:var(--ink2);display:flex;justify-content:space-between;padding:4px 0}
+.comment{display:flex;gap:8px;padding:6px 0;font-size:13px}
+.comment .bubble{background:var(--surface2);border-radius:0 8px 8px 8px;padding:6px 10px;flex:1}
+.comment .bubble b{font-size:12px}
+.suppressed{opacity:.45;filter:grayscale(.6)}
+.poll{border:1px solid var(--line);border-radius:6px;padding:8px;margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.poll button{text-align:left;border:1px solid var(--accent);background:none;color:var(--accent);border-radius:16px;padding:5px 12px;font-weight:600;font-size:13px;position:relative;overflow:hidden}
+.poll button i{position:absolute;inset:0;background:var(--accent-soft);z-index:-1}
+.poll.voted button{z-index:0}
+.sponsored{font-size:11px;color:var(--ink3)}
+.selfie{width:100%;max-width:320px;border-radius:8px;display:block;margin-top:8px;border:1px solid var(--line)}
+
+/* ── jobs ─────────────────────────────── */
+.job{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);position:relative}
+.job .co{width:44px;height:44px;border-radius:4px;flex:none;display:grid;place-items:center;font-weight:800;color:#fff}
+.job .title{font-weight:600;color:var(--accent);font-size:15px;background:none;border:0;padding:0;text-align:left;cursor:pointer}
+.job .title:hover{text-decoration:underline}
+.job .meta{font-size:12px;color:var(--ink2)}
+.job .apps{font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.job .ghost{display:none;position:absolute;right:12px;top:10px}
+.job.reveal .ghost{display:inline-block}
+.job.reveal{background:repeating-linear-gradient(135deg,transparent 0 10px,var(--bad-soft) 10px 12px)}
+.counter{font-variant-numeric:tabular-nums;font-weight:800;font-size:28px;letter-spacing:-.5px}
+.jd{font-size:13px;line-height:1.5}
+.jd li{margin:3px 0}
+
+/* ── messages ─────────────────────────────── */
+.thread{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+.thread:hover{background:var(--surface2)}
+.thread .prev{font-size:12px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thread.unread .prev,.thread.unread .who{font-weight:600;color:var(--ink)}
+.msg{background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:14px;white-space:pre-wrap;margin:10px 0}
+.msg.me{background:var(--accent-soft)}
+
+/* ── notifications ─────────────────────────────── */
+.notif{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);font-size:13px;align-items:center;animation:drop .3s ease;cursor:pointer}
+.notif:hover{background:var(--surface2)}
+.notif.new{background:var(--accent-soft)}
+@keyframes drop{from{transform:translateY(-6px);opacity:0}}
+.notif .t{color:var(--ink3);font-size:11px;margin-left:auto;white-space:nowrap}
+
+/* ── profile / settings ─────────────────────────────── */
+.banner{height:90px;background:linear-gradient(120deg,var(--accent) 0%,var(--accent-soft) 100%)}
+.profile-top{padding:0 16px 14px;margin-top:-32px}
+.profile-top .avatar{width:88px;height:88px;font-size:28px;border:3px solid var(--surface)}
+.endorse{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.toggle{appearance:none;width:40px;height:22px;border-radius:11px;background:var(--line);position:relative;cursor:pointer;flex:none}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .15s}
+.toggle:checked{background:var(--otw)}
+.toggle:checked::after{left:20px}
+.setting{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:center}
+.buried{font-size:11px;color:var(--ink3);margin-top:40px}
+.badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+
+/* ── modal / popover ─────────────────────────────── */
+.modal-bg{position:fixed;inset:0;background:rgba(10,16,20,.55);z-index:50;display:none;place-items:center;padding:16px}
+.modal-bg.show{display:grid}
+.modal{background:var(--surface);border-radius:10px;max-width:460px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.4);position:relative;max-height:90vh;overflow:auto}
+.modal h2{font-size:20px;margin-bottom:6px}
+.modal .x{position:absolute;top:6px;right:8px;background:none;border:0;font-size:10px;color:var(--ink3);opacity:.35}
+.modal .x:hover{opacity:1}
+.blur-row{display:flex;margin:12px 0}
+.blur-row .avatar{filter:blur(5px);margin-right:-8px}
+.decline{background:none;border:0;color:var(--ink3);font-size:11px;text-decoration:underline;margin-top:10px}
+.price{font-size:12px;color:var(--ink3)}
+.pop{position:fixed;z-index:45;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.25);width:300px;padding:12px;font-size:13px}
+.pop .hl{color:var(--ink2);font-size:12px}
+
+/* ── games / bingo ─────────────────────────────── */
+.bingo{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.bingo button{aspect-ratio:1;border:1px solid var(--line);background:var(--surface2);border-radius:4px;font-size:10.5px;padding:4px;line-height:1.15;color:var(--ink);text-align:center}
+.bingo button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.lb{font-size:13px}
+.lb div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line)}
+.guess{display:flex;gap:6px;flex-wrap:wrap}
+.guess button{border:1px solid var(--line);background:var(--surface2);border-radius:6px;padding:6px 10px;font-size:13px;color:var(--ink)}
+.qgrid{display:grid;grid-template-columns:repeat(5,44px);gap:3px;margin:10px 0}
+.qgrid button{width:44px;height:44px;border:1px solid rgba(0,0,0,.25);border-radius:4px;font-size:22px;color:#111}
+.qgrid button.bad{outline:3px solid var(--bad)}
+.reel{aspect-ratio:9/14;background:linear-gradient(160deg,var(--accent),#1a1a2a);border-radius:10px;position:relative;overflow:hidden;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:14px;cursor:pointer}
+.reel .cap{font-weight:800;font-size:16px;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+.reel .prog{position:absolute;top:8px;left:10px;right:10px;height:3px;background:rgba(255,255,255,.3)}
+.reel .prog i{display:block;height:100%;background:#fff;width:0;transition:width linear}
+
+/* ── receipts ─────────────────────────────── */
+.receipt{padding:14px 16px;border-bottom:1px solid var(--line)}
+.receipt h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.receipt .stat2{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink2);margin:4px 0}
+.receipt ul{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--ink2)}
+.receipt li{margin:2px 0}
+
+/* ── disclaimer / toast ─────────────────────────────── */
+.disc{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:var(--ground);font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:8px 16px;text-align:center;z-index:30;line-height:1.4}
+.toast{position:fixed;bottom:52px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--ground);padding:10px 16px;border-radius:6px;font-size:13px;z-index:60;box-shadow:var(--shadow);opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1}
+.ach{position:fixed;top:70px;right:16px;z-index:60;background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;box-shadow:var(--shadow);transform:translateX(120%);transition:transform .3s;max-width:300px}
+.ach.show{transform:none}
+.intro{padding:16px;border-left:4px solid var(--accent)}
+.intro h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.intro p{margin:6px 0 0;font-size:14px;color:var(--ink2);max-width:65ch}
+@media (max-width:600px){.disc{font-size:10px;padding:5px 10px}body{padding-bottom:80px}.searchwrap{flex:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <button class="logo" onclick="go('feed')" aria-label="LonkedOut home">Lonked<b>Out</b></button>
+    <div class="searchwrap"><label class="search"><span>⌕</span><input id="q" placeholder="Search people, jobs, buzzwords…" aria-label="Search" oninput="search(this.value)" onfocus="search(this.value)" autocomplete="off"></label><div class="sresults" id="sres"></div></div>
+    <nav class="tabs" role="tablist" id="tabs"></nav>
+  </div>
+  <div class="strip"><div class="strip-in" id="strip"></div></div>
+</header>
+
+<main id="main"></main>
+
+<div class="modal-bg" id="modalbg" role="dialog" aria-modal="true">
+  <div class="modal" id="modal"></div>
+</div>
+<div id="pop"></div>
+<div class="toast" id="toast"></div>
+<div class="ach" id="ach"></div>
+<div class="disc">⚠︎ LonkedOut is an unofficial, non-commercial parody. It is not affiliated with, endorsed by, or connected to LinkedIn or Microsoft. Nothing here is real, stored, or sent anywhere. Every "exhibit note" links to its sources.</div>
+
+<script>
+/* ───────────────────────── sources ───────────────────────── */
+const SRC = {
+  orig24:["Originality.ai: 54% of 100+ word posts likely AI (to Oct 2024)","https://www.websiteplanet.com/news/linkedin-long-posts-ai/"],
+  orig26:["Originality.ai (Jul 2026): 81.2% of long-form posts likely AI","https://originality.ai/blog/ai-content-published-linkedin"],
+  forbes56:["Forbes (Aug 2026): median engagement down 56% YoY in 2025","https://www.forbes.com/sites/williamarruda/2026/08/02/linkedin-just-changed-the-rules-heres-how-to-stay-visible/"],
+  tnw:["TNW (2026): 'Seems like AI slop' report option, 94% detection claim, suppression not removal","https://thenextweb.com/news/linkedin-ai-slop-crackdown-generic-content"],
+  broetry:["BuzzFeed News (2017) coined 'broetry'","https://www.buzzfeednews.com/article/ryanmac/why-are-these-posts-taking-over-your-linkedin-feed-because"],
+  crying:["Fast Company on the 'crying CEO' backlash (2022)","https://www.fastcompany.com/90778307/cringey-linkedin-posts-like-the-crying-ceo-are-inspiring-a-culture-of-backlash"],
+  topvoice:["Fortune (2024): collaborative articles + gold badge became an AI feedback loop","https://fortune.com/2024/04/18/linkedin-microsoft-collaborative-articles-generative-ai-feedback-loop-user-backlash"],
+  topvoice2:["Social Media Today: gold Top Voice badge retired Oct 2024","https://www.socialmediatoday.com/news/linkedins-removing-top-voice-badges-collaborative-articles/728247/"],
+  vdb:["van der Blom Algorithm Insights 2025: views −50%, engagement −25%, follower growth −59%","https://www.botdog.co/blog-posts/linkedin-algorithm-2025"],
+  links:["External links reported to cut reach 40–60% (vendor data; a 2026 Saywhat study disagrees)","https://www.zoomsphere.com/blog/linkedin-algorithm-2026-why-generic-ai-content-kills-your-organic-reach"],
+  polls:["Polls reportedly lost ~60% reach after bait abuse; 'Agree?' CTAs ~40%","https://www.nerdsey.com/blog/linkedin-algorithm-2026/"],
+  nyt:["LinkedIn: ~11,000 applications per minute, +45% YoY (NYT via eWeek, 2025)","https://www.eweek.com/news/ai-job-applications-linkedin/"],
+  cnbcfire:["CNBC (Oct 2025): recruiters 'drinking through a fire hose' of AI applications","https://www.cnbc.com/2025/10/29/recruiters-are-drinking-through-a-fire-hose-of-job-applications-experts-say.html"],
+  ghost1:["ResumeUp.AI (2025): 27.4% of US LinkedIn postings likely inactive","https://www.entrepreneur.com/business-news/one-quarter-of-jobs-posted-online-are-fake-ghost-jobs-study/496683"],
+  ghost2:["Resume Builder (2024): 4 in 10 companies posted a fake listing; 59% to collect resumes","https://www.resumebuilder.com/3-in-10-companies-currently-have-fake-job-posting-listed/"],
+  ghost3:["Greenhouse (Jan 2025): 18–22% of its own listings were ghost jobs","https://www.marketbeat.com/articles/more-soul-crushing-than-ever-popular-hiring-platform-finds-around-20-of-its-postings-were-ghost-jobs-2025-01-13"],
+  txag:["Texas AG (Jul 2026) investigates LinkedIn over fake/misleading jobs sold to Premium subscribers","https://www.texasattorneygeneral.gov/news/releases/attorney-general-ken-paxton-investigates-linkedin-advertising-fake-and-misleading-job-opportunities"],
+  topapp:["LinkedIn Help: 'Top Applicant' = top 50% of applicants","https://www.linkedin.com/help/linkedin/answer/a548337"],
+  topapp2:["'Microsoft has monetized your misery' — critique of Premium job features","https://medium.com/@p.b.brauer/microsoft-has-monetized-your-misery-the-broken-promise-of-linkedins-job-search-dfa2521ac1aa"],
+  prem:["Premium revenue topped $1.7B (FY2024), fueled by AI features","https://news.linkedin.com/2024/march/LinkedIn-Premium-subscription-tops-1-7B-in-revenue-fueled-by-ai-features"],
+  price:["Premium Career $29.99 → $39.99/mo for new subscribers","https://fullenrich.com/content/linkedin-premium-price-increase"],
+  dd:["deceptive.design: LinkedIn is a featured brand in the dark-patterns library","https://www.deceptive.design/brands/linkedin"],
+  viewed:["Free users see 5 viewers; the rest are blurred behind an upsell","https://connectsafely.ai/articles/linkedin-viewer-who-viewed-profile-guide-2026"],
+  viewed2:["Appearing in search results counts as a 'profile view'","https://emanhassan.substack.com/p/beware-of-linkedins-trick-for-profile"],
+  ai24:["The Register (Sep 2024): AI-training setting enabled by default before the policy was updated","https://www.theregister.com/2024/09/19/linkedin_ai_data_access/"],
+  ico:["UK ICO statement; LinkedIn paused UK training","https://ico.org.uk/about-the-ico/media-centre/news-and-blogs/2024/09/our-statement-on-changes-to-linkedin-ai-data-policy/"],
+  dpc:["Irish DPC: €310M fine for unlawful behavioural advertising (Oct 2024)","https://www.dataprotection.ie/en/news-media/press-releases/irish-data-protection-commission-fines-linkedin-ireland-eu310-million"],
+  breach:["2012 breach: 117M unsalted SHA-1 passwords (disclosed 2016)","https://www.cbsnews.com/losangeles/news/linkedin-confirms-2012-hack-exposed-117-million-user-passwords"],
+  scrape:["2021: 700M scraped records for sale — 'not a breach'","https://forbes.com/sites/leemathews/2021/06/29/details-on-700-million-linkedin-users-for-sale-on-notorious-hacking-forum/amp"],
+  perkins:["Perkins v. LinkedIn: $13M settlement over 'Add Connections' reminder emails (2015)","https://www.fastcompany.com/3051906/after-lawsuit-settlement-linkedins-dishonest-design-is-now-a-13-million-problem"],
+  inmail:["LinkedIn Help: InMail credit is refunded when the candidate replies — even to decline","https://www.linkedin.com/help/recruiter/answer/a1322781"],
+  blindghost:["Blind: recruiters who InMail and then ghost","https://www.teamblind.com/post/why-do-recruiters-inmail-on-linkedin-and-ghost-you-atnjdbk1"],
+  games:["CNBC (Aug 2025): games, 84% day-1 return, DAU/MAU 0.38→0.42","https://www.cnbc.com/2025/08/12/linkedin-mini-sudoku-games.html"],
+  games2:["TechRadar: 'LinkedIn is adding games, for some reason'","https://www.techradar.com/pro/linkedin-is-adding-games-for-some-reason"],
+  video:["TechCrunch (2024): TikTok-style vertical video feed","https://techcrunch.com/2024/03/27/linkedin-is-experimenting-with-a-tiktok-like-video-feed-in-its-app"],
+  otw:["CNBC (Jan 2025): 220M Open to Work; recruiters split","https://www.cnbc.com/2025/01/23/recruiters-weigh-in-if-linkedins-open-to-work-feature-helps-or-hurts.html"],
+  otw2:["ERE: Hung Lee poll 70% good / 7% bad; 'biggest red flag' vs 'selling you something'","https://www.ere.net/articles/the-debate-over-open-to-work"],
+  endorse:["interviewing.io: top-endorsed language matches real language <50% of the time","https://interviewing.io/blog/linkedin-endorsements-useless"],
+  pav:["'People also viewed' opt-out quietly removed (2024)","https://demandbird.com/resources/linkedin-people-also-viewed/"],
+  verify:["100M+ verified via CLEAR/Persona; ID-handover and verified-scammer concerns","https://www.socialmediatoday.com/news/linkedin-reaches-100-million-verified-profiles/807467/"],
+  lunatics:["Boing Boing: why LinkedIn influencer culture became social media's biggest cringe","https://boingboing.net/2025/05/23/why-linkedins-corporate-influencer-culture-has-become-social-medias-biggest-cringe.html"],
+  hustle:["WebProNews: toxic positivity, burnout, and the 2025 'authenticity shift'","https://www.webpronews.com/linkedins-toxic-positivity-burnout-risks-and-2025-authenticity-shift/"],
+  grief:["'My wife died. Here's what it taught me about B2B sales' — Poe's law","https://www.linkedin.com/pulse/my-wife-died-heres-what-taught-me-b2b-sales-poes-law-chaudhary-wqygc"],
+  notif:["RecruitingDaily: inside the LinkedIn spam machine","https://recruitingdaily.com/dark-patterns-and-data-privacy-inside-the-linkedin-spam-machine/"],
+  easy:["Hirelytica (2026): Easy Apply response rates 3–13%; 34% of recruiters spend up to half the week filtering bots","https://hirelytica.com/blog/linkedin-easy-apply-broken-quality-over-quantity-2026"],
+  seekers:["Fast Company: >50% of seekers hear back from <5% of applications","https://www.fastcompany.com/91342035/how-to-identify-a-ghost-job-according-to-linkedins-head-of-career-products"],
+  c500:["MEL Magazine: the '500+ connections' scam","https://melmagazine.com/en-us/story/linkedin-500-connections-scam"],
+};
+const note = (title, tag, html, srcs=[]) => `<details class="exhibit"><summary>${title}<span class="etag">${tag}</span></summary><div class="ex-body">${html}${srcs.length?`<p class="src">Sources: ${srcs.map(k=>`<a href="${SRC[k][1]}" target="_blank" rel="noopener">${SRC[k][0]}</a>`).join(' · ')}</p>`:''}</div></details>`;
+
+/* ───────────────────────── data ───────────────────────── */
+const PEOPLE = [
+  ["Brayden Hustleworth","Founder | Ex-Google (contractor, 3 weeks) | Keynote Speaker | Father | Human","#7A4E9A","Brayden has founded four companies, all named after Greek letters. He is 'building in public,' which means posting screenshots of his Notion."],
+  ["Priya Anand-Whitmore","Chief Storytelling Officer · Top Voice in Leadership, Cold Calling & Pet Grooming","#2A7F62","Priya earned 14 Top Voice badges by pasting AI answers into AI questions. She has never groomed a pet."],
+  ["Chad Synergy","Helping founders 10x their pipeline with AI-powered AI 🚀","#B3532C","Chad will pitch you 0.8 seconds after you accept. He has a Calendly. There is no pressure."],
+  ["Dr. Meredith Quill, MBA, PMP, CSM, ✨","Transformation Evangelist | Author of 'Fail Upward'","#345C9E","Meredith has been 'humbled' 212 times this quarter. Her book is a PDF."],
+  ["Tyler Brokaw-Nguyen","Recruiting Partner @ TalentSphere | We're hiring!!! | DMs open","#8A6A10","Tyler sends 400 InMails a day. He is 'so impressed by your background.' He will not reply."],
+  ["Ava Limitless","Growth Architect | 4:30am Club | Ice Bath Enthusiast","#9E2E5A","Ava has not slept since 2021. Her company does something with 'growth.'"],
+  ["Marcus Delgado-Pike","VP of People Operations (we rebranded HR)","#3A7A8C","Marcus has been endorsed for Blockchain 37 times. He runs payroll."],
+  ["Jenna Thrive","Career Coach | I turned my layoff into a 7-figure course","#5A6E2A","Jenna's course teaches you to sell a course. Link in comments."],
+];
+const YOU = ["You","Open to literally anything | 500+ connections you've never met","#0E6E8C","This is you. You are doing your best."];
+
+const TEMPLATES = [
+  {genre:"AI slop", who:3, srcs:["orig26","forbes56"], text:`Most leaders think productivity is about doing more.\n\nIt's not.\n\nIt's about doing less — intentionally.\n\nHere's what 10 years in the trenches taught me 🧵\n\n→ Clarity beats hustle\n→ Systems beat goals\n→ Rest is a strategy, not a reward\n\nIt's not about working harder. It's about working smarter.\n\nAgree? ♻️ Repost to help someone who needs this. #Leadership #Productivity`},
+  {genre:"Broetry", who:0, srcs:["broetry"], text:`I got rejected from 47 jobs.\n\nThen I stopped applying.\n\nHere's what happened next. 👇\n\nI started posting.\n\nEvery. Single. Day.\n\nNot about wins.\n\nAbout lessons.\n\n6 months later?\n\nI'm still unemployed.\n\nBut my engagement is up 340%.\n\nAnd that's the real job. #Grit`},
+  {genre:"Humblebrag", who:3, srcs:["lunatics"], text:`Humbled and honored to share that I've been named to the 40 Under 40 list.\n\nThis is not about me.\n\nIt's about the team. 🙏\n\n(I am tagging 12 executives below. Please congratulate me so the algorithm sees it. Again, not about me.) #Humbled`},
+  {genre:"Fake inspirational", who:0, srcs:["crying","lunatics"], text:`I saw a man sitting outside Starbucks with a cardboard sign.\n\nMost people walked past.\n\nI didn't.\n\nI bought him a coffee and asked him one question: "What's your dream?"\n\nToday, he's my Head of Sales. Quota attainment: 212%.\n\nNever judge a book by its cover.\n\n#Leadership #Grit #Hiring`},
+  {genre:"Tragedy as a lesson", who:3, srcs:["grief"], text:`My father passed last Tuesday.\n\nAt the funeral, I noticed something about how people lined up to pay their respects.\n\nSome came early. Some came late. Some didn't come at all.\n\nIt's exactly like a sales pipeline.\n\n5 lessons grief taught me about B2B conversion: #Sales`},
+  {genre:"Hustle culture", who:5, srcs:["hustle"], text:`4:30am. Gym.\n5:30am. Cold plunge.\n6:00am. Journaling (gratitude, then KPIs).\n6:30am. Two deals closed before your alarm went off.\n\nWhile you were at brunch, I was building.\n\nYour competition isn't resting.\n\nWhy are you?\n\n(Please don't ask what the company does.) #Hustle`},
+  {genre:"Hired-on-the-spot", who:6, srcs:["lunatics"], text:`A candidate showed up 20 minutes late. Soaked from the rain. No umbrella.\n\nI hired her on the spot.\n\nWhy?\n\nGRIT.\n\n(She has since left. Something about "unpaid overtime." Not everyone is built for this.) #Hiring`},
+  {genre:"Toddler KPI", who:1, srcs:["lunatics"], text:`My 4-year-old asked me why the sky is blue.\n\nI didn't have an answer.\n\nThat's when I realized: our sales funnel had no curiosity.\n\nWe'd stopped asking "why."\n\nThank you, Olivia. You're a better CRO than most CROs. #Leadership`},
+  {genre:"Engagement bait", who:2, srcs:["polls"], text:`Hard work beats talent when talent doesn't work hard.\n\nAgree? 👍 or 👎\n\nI built a 47-page cold-email playbook that generated $2.3M in pipeline.\n\nComment "PLAYBOOK" and I'll DM it to you.\n(Must be connected. Must follow. Must like. Must repost. Must.) #Sales`},
+  {genre:"Open to Work discourse", who:4, srcs:["otw","otw2"], text:`Unpopular opinion: the #OpenToWork banner makes you look desperate.\n\nRemove it. Let your work speak.\n\n(I am a recruiter. I filter on the Open to Work banner every morning. Please keep it on. Also remove it. Agree?)`},
+  {genre:"Lead-magnet gate", who:7, srcs:["polls"], text:`I turned my layoff into a 7-figure business.\n\nThe secret? I sold a course about turning your layoff into a 7-figure business.\n\nThe course is $997. The secret is the course.\n\nLink in comments (because the algorithm punishes links in posts 🙄). #Grit`},
+  {genre:"Poll", who:1, poll:["Empathy","Vision","Integrity","Other (comment below!)"], srcs:["polls"], text:`What matters MOST in a leader?\n\n(This poll has no purpose other than reach. Thank you for your service.) #Leadership`},
+  {genre:"Sponsored", who:2, sponsored:true, srcs:["prem"], text:`Your post could reach 3× more people.\n\nTry Rewrite with AI — free for 1 month.\n\n(It will add em dashes. It will add "It's not X. It's Y." It will make your post indistinguishable from the 81% we're also suppressing. This is the firehose and the filter.)`},
+  {genre:"Proposal", who:5, srcs:["lunatics"], text:`She said YES! 💍\n\nBut here's what proposing taught me about B2B sales:\n\n1. Know your ICP\n2. Build rapport before the ask\n3. The close is just the beginning of onboarding\n\nCongratulations to us — and to your pipeline. #Sales #Love`},
+  {genre:"Uber driver", who:0, srcs:["lunatics"], text:`My Uber driver today had a PhD in astrophysics.\n\nI asked why he drives.\n\n"Because I love people," he said.\n\nThat's when I realized: our customer success team has no astrophysicists.\n\nWe're hiring. #Hiring #Leadership`},
+];
+
+const AI_COMMENTS = [
+  "Spot on, {n}! Your point about resilience really resonates. Thanks for sharing this valuable perspective. 🙌",
+  "Great insights! Authenticity truly is the key to leadership. 💯",
+  "This is so true. It's not about the destination — it's about the journey. Thanks for sharing!",
+  "Love this, {n}! Couldn't agree more. Consistency is everything. 🚀",
+  "Powerful reminder. Mindset truly shapes outcomes. Appreciate you sharing this! ✨",
+  "Absolutely! Great question — to handle this, it's important to communicate clearly and align on goals.",
+  "PLAYBOOK",
+  "Following for more! 🔔",
+];
+
+const JOBS = [
+  ["Senior Software Engineer (Entry Level)","Quantumly","Remote (must relocate to Austin)","$45K–$280K","#345C9E",94,true],
+  ["Rockstar Ninja Growth Wizard","Synergize.ai","San Francisco, CA","Equity (pre-seed)","#B3532C",3,false],
+  ["Head of Everything","Stealth Startup","Anywhere","Competitive*","#7A4E9A",61,true],
+  ["Marketing Coordinator (10+ yrs exp. in a 2-yr-old tool)","Brandwave","Chicago, IL (Hybrid: 5 days in office)","$38K","#2A7F62",12,false],
+  ["Chief Happiness Officer","Vibecorp","New York, NY","Unpaid internship","#9E2E5A",210,true],
+  ["Data Analyst","Meridian Health","Denver, CO","$72K–$88K","#3A7A8C",2,false],
+  ["Prompt Engineer III","OmniSlop","Remote","$190K","#8A6A10",44,true],
+  ["Founding Engineer (Cofounder title, 0.01% equity)","Vaporware Labs","Remote","$0 until Series A","#5A6E2A",7,false],
+];
+const JD = ["Wear many hats (we cannot afford heads)","Thrive in ambiguity (we have no plan)","Fast-paced environment (understaffed)","Competitive salary (we looked at one other company)","Unlimited PTO (nobody takes any)","Rockstar mentality (unpaid overtime)","Family culture (boundaries are discouraged)","Must be passionate (about the mission, not the money)","10+ years experience in a framework released in 2023","Ability to relocate to Austin for a remote role"];
+
+const SPAM = [
+  (n)=>`Hi ${n}, I came across your profile and was really impressed by your journey! I help founders like you 10x their pipeline with AI-powered outreach. Open to a quick 15-min chat? (This message was sent to 400 people.)`,
+  (n)=>`Exciting opportunity! We're hiring a Senior Flash Developer in a city you don't live in. Your background at a company you left 8 years ago is a perfect fit. Let me know if you or someone you know is interested!`,
+  (n)=>`Hey ${n}! Thanks for connecting 🤝 Quick question — are you happy with your current lead gen? No pressure. Totally no pressure. Here's my Calendly. No pressure.`,
+  (n)=>`URGENT: Your profile was selected for a verified remote position paying $4,500/week. Reply with your SSN to begin onboarding. ✅ Verified account (we gave a third party our passport).`,
+  (n)=>`Hi ${n} — I'm a Recruiting Partner at TalentSphere. I was SO impressed by your background. I'll ghost you the moment you reply, because my InMail credit gets refunded either way.`,
+  (n)=>`${n}, I noticed we both have 'leadership' in our headlines. Let's connect! Also, I've attached a 14-slide deck about my podcast.`,
+  (n)=>`Hi ${n}! Loved your recent post (I did not read it). Would you be open to a collab? I have 11 followers and a newsletter.`,
+];
+
+const NOTIFS = [
+  "Brayden Hustleworth posted for the first time in 3 hours. Be the first to engage!",
+  "You appeared in 47 searches this week. 🔒 See who (Premium)",
+  "Congratulate Chad Synergy on 2 years at Synergize.ai (he was laid off in month 14)",
+  "Priya Anand-Whitmore earned a Top Voice badge in Quantum Pet Grooming",
+  "12 people viewed your profile. 11 were bots. 1 was your ex.",
+  "Recommended course: 'Leading with Authenticity' (Lonked Learning, $29.99/mo)",
+  "Play today's Qeens puzzle before your connections beat you!",
+  "Does Marcus know about Blockchain? Endorse him.",
+  "Your application was viewed! (by an ATS, which rejected it in 0.3s)",
+  "Trending in your network: a proposal photo with 5 B2B lessons",
+  "Jenna Thrive mentioned you in a comment: 'PLAYBOOK'",
+  "Update your profile to unlock 3× more recruiter spam",
+  "New job alert: Head of Everything (1,000+ applicants, posted 61 days ago)",
+  "Ava Limitless is going live: '4:30am or you're already behind'",
+  "Your connection Tyler is hiring! (He is not. He is farming.)",
+  "Reminder: you haven't posted in 2 days. Your personal brand is decaying.",
+];
+
+const BINGO = ["I'm humbled to announce","Agree?","It's not X. It's Y.","Crying selfie","4:30am club","Ex-Google (intern)","Link in comments","Comment 'GUIDE'","Toddler taught me KPIs","Hired on the spot","Rockstar / Ninja","1,000+ applicants","Top Voice in 6 topics","Proposal = B2B lesson","Humbled 🙏 (free space)","Funeral = pipeline","Let's connect! (sales pitch)","Open to Work is a red flag","500+ connections","Repost if you agree ♻️","Unpopular opinion (popular)","Lessons from my Uber driver","Ice bath","🧵 thread with 3 points","Ghost job, 94 days old"];
+
+const ACH = {
+  first_like:"🎉 First Like — An AI comment has been posted on your behalf.",
+  slop_reporter:"🫠 Slop Reporter — You suppressed a post. The author will never know.",
+  published:"📣 Thought Leader — You posted. 3 people saw it.",
+  rewritten:"✨ Em Dash Enjoyer — You let AI rewrite your post.",
+  applied:"⚡ Easy Applier — Applicant #1,248 and climbing.",
+  ghostbuster:"👻 Ghostbuster — You exposed the ghost jobs.",
+  replied:"📭 Credit Refunded — You replied to a recruiter. They got their money back.",
+  connected500:"🤝 500+ — You now know 500 people you don't know.",
+  top_voice:"🏅 Top Voice — You answered an AI question with an AI answer.",
+  cried:"😭 Crying CEO — You posted a crying selfie about layoffs.",
+  bingo:"🎯 BINGO — Log off.",
+  qeens:"👑 Qeens — You solved a puzzle on a jobs website.",
+  firehose:"🚒 Firehose — You opened every notification at once.",
+  cancelled:"🏃 Escaped — You found the real Cancel button.",
+  premium:"💳 Top Applicant — You started a trial. Top 50%!",
+  burnout:"🔥 Burned Out — Your Burnout hit 100. Take a vacation (unlimited, untaken).",
+  dignity0:"🪦 Dignity: 0 — You are now a Founder.",
+  endorsed:"👍 Endorser — You vouched for a skill nobody has.",
+  reel:"📱 Doomscrolled — You watched 3 professional Reels.",
+  search:"🔎 Searched — Results sorted by who paid.",
+  stalker:"👀 Profile Viewer — They know. They always know.",
+};
+
+/* ───────────────────────── state & scoring ───────────────────────── */
+const S = { view:'feed', otw:false, reach:100, posts:[], notifs:[], unread:0, msgsUnread:3, apps:1247, slopCount:0, aiTrain:true,
+  clout:10, burn:5, dig:90, conns:312, badges:[], ach:new Set(), reelsWatched:0, views:0 };
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pidx = p => PEOPLE.indexOf(p);
+const avatar = (p,cls='') => `<button class="avatar ${cls}" style="background:${p[2]}" onclick="profile(${p===YOU?-1:pidx(p)},event)" aria-label="${esc(p[0])}">${p[0].split(' ').map(w=>w[0]).slice(0,2).join('')}</button>`;
+const nameBtn = p => `<button class="namebtn" onclick="profile(${p===YOU?-1:pidx(p)},event)">${esc(p[0])}</button>`;
+let toastT; function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3400)}
+let achT; function unlock(k){if(S.ach.has(k))return;S.ach.add(k);const a=$('#ach');a.textContent='Achievement: '+ACH[k];a.classList.add('show');clearTimeout(achT);achT=setTimeout(()=>a.classList.remove('show'),3600);renderStrip()}
+function bump(d){const c=x=>Math.max(0,Math.min(100,x));S.clout=c(S.clout+(d.clout||0));S.burn=c(S.burn+(d.burn||0));S.dig=c(S.dig+(d.dig||0));
+  if(S.burn>=100)unlock('burnout');if(S.dig<=0)unlock('dignity0');renderStrip()}
+function renderStrip(){$('#strip').innerHTML=`
+  <div class="stat clout" title="Clout: impressions, badges, strangers who know your name">🚀 Clout<div class="bar"><i style="width:${S.clout}%"></i></div><b>${S.clout}</b></div>
+  <div class="stat burn" title="Burnout: 4:30am clubs, cold plunges, Easy Apply">🔥 Burnout<div class="bar"><i style="width:${S.burn}%"></i></div><b>${S.burn}</b></div>
+  <div class="stat dig" title="Dignity: goes down. Only down.">🎩 Dignity<div class="bar"><i style="width:${S.dig}%"></i></div><b>${S.dig}</b></div>
+  <button class="trophy" onclick="trophies()">🏆 ${S.ach.size}/${Object.keys(ACH).length}</button>`}
+function trophies(){modal(`<h2>Trophies</h2><p class="muted">${S.ach.size} of ${Object.keys(ACH).length}. Each one cost you something.</p><div class="stack" style="margin-top:10px;font-size:13px">${Object.entries(ACH).map(([k,v])=>`<div style="${S.ach.has(k)?'':'opacity:.35;filter:grayscale(1)'}">${S.ach.has(k)?v:'🔒 '+v.split(' — ')[0].replace(/^\S+ /,'')}</div>`).join('')}</div>`)}
+
+/* ───────────────────────── tabs ───────────────────────── */
+const ICON = {
+  feed:'<path d="M23 9v2h-2v7a3 3 0 01-3 3h-4v-6h-4v6H6a3 3 0 01-3-3v-7H1V9l11-7 5 3.18V2h3v5.09z"/>',
+  jobs:'<path d="M17 6V5a3 3 0 00-3-3h-4a3 3 0 00-3 3v1H2v4a3 3 0 003 3h14a3 3 0 003-3V6zM9 5a1 1 0 011-1h4a1 1 0 011 1v1H9zm10 9a4 4 0 003-1.38V17a3 3 0 01-3 3H5a3 3 0 01-3-3v-4.38A4 4 0 005 14z"/>',
+  msgs:'<path d="M16 4H8a7 7 0 000 14h4v4l8.16-5.39A6.78 6.78 0 0023 11a7 7 0 00-7-7zm-8 8.25A1.25 1.25 0 119.25 11 1.25 1.25 0 018 12.25zm4 0A1.25 1.25 0 1113.25 11 1.25 1.25 0 0112 12.25zm4 0A1.25 1.25 0 1117.25 11 1.25 1.25 0 0116 12.25z"/>',
+  notifs:'<path d="M22 19h-8.28a2 2 0 11-3.44 0H2v-1a4.52 4.52 0 011.17-2.83l1-1.17h15.7l1 1.17A4.42 4.42 0 0122 18zM18.21 7.44A6.27 6.27 0 0012 2a6.27 6.27 0 00-6.21 5.44L5 13h14z"/>',
+  me:'<path d="M12 2a10 10 0 1010 10A10 10 0 0012 2zm0 3a3.5 3.5 0 11-3.5 3.5A3.5 3.5 0 0112 5zm0 15a8 8 0 01-6.2-2.95 6 6 0 0112.4 0A8 8 0 0112 20z"/>',
+  games:'<path d="M21 8.5v7a4.5 4.5 0 01-8.3 2.4l-.7-1.1-.7 1.1A4.5 4.5 0 013 15.5v-7A4.5 4.5 0 017.5 4h9A4.5 4.5 0 0121 8.5zM8 8H6v2H4v2h2v2h2v-2h2v-2H8zm9 0a1 1 0 101 1 1 1 0 00-1-1zm-2 2a1 1 0 101 1 1 1 0 00-1-1zm2 2a1 1 0 101 1 1 1 0 00-1-1zm2-2a1 1 0 101 1 1 1 0 00-1-1z"/>',
+  premium:'<path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.3l-6.1 3.3 1.4-6.8L2.2 9.1l6.9-.8z"/>',
+  receipts:'<path d="M5 2h14v20l-2-1.5L15 22l-2-1.5L11 22l-2-1.5L7 22l-2-1.5zm3 5v2h8V7zm0 4v2h8v-2zm0 4v2h5v-2z"/>',
+};
+const TABS = [['feed','Feed'],['jobs','Jobs'],['msgs','Messaging'],['notifs','Notifications'],['me','Me'],['games','Games'],['premium','Premium'],['receipts','Receipts']];
+function renderTabs(){
+  $('#tabs').innerHTML = TABS.map(([k,l])=>{
+    const b = k==='notifs'&&S.unread?`<span class="badge">${S.unread>99?'99+':S.unread}</span>`:k==='msgs'&&S.msgsUnread?`<span class="badge">${S.msgsUnread}</span>`:'';
+    return `<button class="tab ${k==='premium'?'gold':''}" role="tab" aria-selected="${S.view===k}" onclick="go('${k}')"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>${l}${b}</button>`;
+  }).join('');
+}
+function go(v){S.view=v;if(v==='notifs'){S.unread=0}if(v==='msgs'){S.msgsUnread=0}closePop();render();window.scrollTo({top:0})}
+function render(){renderTabs();const f={feed,jobs,msgs,notifs,me,games,premium,receipts}[S.view];$('#main').innerHTML=f();afterRender()}
+
+/* ───────────────────────── search ───────────────────────── */
+function search(q){const r=$('#sres');q=(q||'').trim().toLowerCase();if(!q){r.classList.remove('show');return}
+  const ppl=PEOPLE.filter(p=>(p[0]+p[1]).toLowerCase().includes(q)).slice(0,3);
+  const jbs=JOBS.map((j,i)=>[j,i]).filter(([j])=>(j[0]+j[1]).toLowerCase().includes(q)).slice(0,3);
+  const buzz=["synergy","thought leadership","humbled","grit","pipeline","authentic","rockstar","founder"].filter(b=>b.includes(q)).slice(0,2);
+  r.innerHTML=`<div class="sh">Promoted</div><button onclick="openPremium('Premium members appear first in search.','You searched for “${esc(q)}”. These results are sorted by who paid.');closeSearch()"><span class="pill gold">AD</span> Become a top result for “${esc(q)}”</button>
+    ${ppl.length?'<div class="sh">People</div>'+ppl.map(p=>`<button onclick="profile(${pidx(p)},event);closeSearch()">${avatar(p,'sm')}<span>${esc(p[0])}<br><span class="tiny">${esc(p[1]).slice(0,50)}…</span></span></button>`).join(''):''}
+    ${jbs.length?'<div class="sh">Jobs</div>'+jbs.map(([j,i])=>`<button onclick="go('jobs');jobDetail(${i});closeSearch()">💼 ${esc(j[0])} <span class="tiny">· ${j[1]}</span></button>`).join(''):''}
+    ${buzz.length?'<div class="sh">Buzzwords</div>'+buzz.map(b=>`<button onclick="hashtag('${b}');closeSearch()"># ${b} · ${Math.floor(Math.random()*900)+100}K posts</button>`).join(''):''}
+    ${!ppl.length&&!jbs.length&&!buzz.length?`<button onclick="closeSearch();toast('No results. Try \\'synergy\\'.')">No results for “${esc(q)}” — but 1,000+ people are hiring for it</button>`:''}`;
+  r.classList.add('show');unlock('search')}
+function closeSearch(){$('#sres').classList.remove('show');$('#q').value=''}
+document.addEventListener('click',e=>{if(!e.target.closest('.searchwrap'))$('#sres').classList.remove('show')});
+
+/* ───────────────────────── profile popover ───────────────────────── */
+function profile(i,ev){ev&&ev.stopPropagation();const p=i<0?YOU:PEOPLE[i];closePop();
+  const pop=document.createElement('div');pop.className='pop';const r=ev?ev.target.getBoundingClientRect():{left:100,bottom:100};
+  pop.style.left=Math.min(window.innerWidth-310,Math.max(8,r.left))+'px';pop.style.top=Math.min(window.innerHeight-260,r.bottom+6)+'px';
+  const conn=p._conn;
+  pop.innerHTML=`<div class="row"><div class="avatar sm" style="background:${p[2]};cursor:default">${p[0].split(' ').map(w=>w[0]).slice(0,2).join('')}</div><div><b>${esc(p[0])}</b> ${i>=0&&i%2?'<span class="pill acc">✓</span>':''}<div class="hl">${esc(p[1])}</div></div></div>
+    <p style="margin:8px 0;font-size:12px;color:var(--ink2)">${esc(p[3])}</p>
+    ${i<0?`<button class="btn sm" onclick="go('me');closePop()">View your profile</button>`:`<div class="row" style="flex-wrap:wrap;gap:6px">
+      <button class="btn primary sm" onclick="connect(${i})">${conn?'✓ Connected':'Connect'}</button>
+      <button class="btn sm" onclick="toast('Following. Their posts will now appear 3× as often. There is no way to see less.');bump({burn:2})">Follow</button>
+      <button class="btn sm" onclick="endorseRandom(${i})">Endorse</button>
+      <button class="btn ghost sm" onclick="dm(${i})">Message</button></div>`}
+    <div class="tiny" style="margin-top:8px">${i<0?'':'They have been notified that you viewed this. Twice.'}</div>`;
+  document.body.appendChild(pop);S.views++;if(S.views>=3)unlock('stalker');
+  setTimeout(()=>document.addEventListener('click',closePop,{once:true}));}
+function closePop(){document.querySelectorAll('.pop').forEach(p=>p.remove())}
+function connect(i){const p=PEOPLE[i];if(p._conn){toast('Already connected. They have not noticed.');return}p._conn=true;S.conns++;bump({clout:2,dig:-1});
+  toast(`Connected with ${p[0]}. ${i===2||i===4?'A pitch is arriving.':'They will pitch you within the week.'}`);
+  if(i===2||i===4){setTimeout(()=>{addThread(p);addNotif(`${p[0]} sent you a message 0.8s after connecting.`)},800)}
+  if(S.conns>=500)unlock('connected500');closePop();render()}
+function endorseRandom(i){const s=rnd(["Blockchain","Microsoft Excel","Leadership","COBOL","Vibes","Quantum Pet Grooming","Synergy"]);toast(`You endorsed ${PEOPLE[i][0].split(' ')[0]} for ${s}. They will endorse you back for something you cannot do.`);bump({clout:1,dig:-2});unlock('endorsed');closePop()}
+function dm(i){go('msgs');addThread(PEOPLE[i],`(You opened a chat with ${PEOPLE[i][0].split(' ')[0]}. They typed for 4 minutes and sent:) ${rnd(SPAM)('Sundeep')}`);closePop()}
+function hashtag(t){go('feed');toast(`#${t}: 1.2M posts, 4 ideas.`);bump({burn:1})}
+
+/* ───────────────────────── rails ───────────────────────── */
+function leftRail(){
+  return `<aside><div class="card">
+    <div class="banner" style="height:54px"></div>
+    <div class="card-body" style="margin-top:-34px;text-align:center">
+      ${avatar(YOU,S.otw?'otw':'')}
+      <div style="font-weight:600;margin-top:8px">You ${S.badges.length?`<span class="pill gold">Top Voice ×${S.badges.length}</span>`:''}</div>
+      <div class="tiny">${esc(YOU[1])}</div>
+    </div>
+    <div class="card-body" style="border-top:1px solid var(--line);font-size:12px">
+      <button class="row" style="justify-content:space-between;width:100%;background:none;border:0;padding:2px 0;color:inherit" onclick="openPremium()"><span class="muted">Profile viewers</span><b>🔒 ${47+S.views}</b></button>
+      <div class="row" style="justify-content:space-between"><span class="muted">Post impressions</span><b id="imp">${Math.round(S.reach*12)}</b></div>
+      <button class="row" style="justify-content:space-between;width:100%;background:none;border:0;padding:2px 0;color:inherit" onclick="connectSpree()"><span class="muted">Connections</span><b>${S.conns>=500?'500+':S.conns} <span class="tiny">+</span></b></button>
+    </div>
+    ${note('Vanity metrics','exhibit 01',`<p>"500+" is the cap — it reads the same whether you know 501 people or 30,000 strangers. "Profile viewers" counts appearing in a recruiter's search results as a view, then blurs the list behind an upsell. Click Connections to farm your way to 500+.</p>`,['viewed','viewed2','c500'])}
+  </div>
+  <div class="card card-body" style="font-size:13px">
+    <label class="row" style="justify-content:space-between"><span>#OpenToWork frame</span><input type="checkbox" class="toggle" ${S.otw?'checked':''} onchange="S.otw=this.checked;bump(this.checked?{clout:3,dig:-4}:{dig:2});render()"></label>
+    <div class="tiny" style="margin-top:6px">${S.otw?'Recruiters can now filter for you. Also, some hiring managers call this "the biggest red flag on LinkedIn." Both at once.':'Hidden. 220M people disagree with you.'}</div>
+  </div>
+  <div class="card card-body" style="font-size:13px"><b>Daily streak</b> <span class="pill acc">🔥 <span id="streak">1</span> day</span><div class="tiny" style="margin-top:4px">You've been here <span id="mins">0</span> min. Your personal brand thanks you.</div></div>
+  </aside>`;
+}
+function connectSpree(){const n=Math.min(50,Math.max(0,520-S.conns));if(S.conns>=500){toast('500+. The number cannot go higher. Neither can your standing.');return}S.conns+=n;bump({clout:4,dig:-5,burn:3});toast(`Sent ${n} connection requests to people with 'leadership' in their headline. 49 accepted. 1 reported you.`);if(S.conns>=500)unlock('connected500');render()}
+function rightRail(){
+  return `<aside class="rail">
+    <div class="card"><div class="card-body"><h2>People also viewed</h2>
+      <div class="stack" style="margin-top:8px">${PEOPLE.slice(0,3).map(p=>`<div class="row">${avatar(p,'sm')}<div style="min-width:0"><div style="font-size:13px">${nameBtn(p)}</div><div class="tiny">${esc(p[1]).slice(0,44)}…</div></div><button class="btn sm" style="margin-left:auto" onclick="connect(${pidx(p)})">${p._conn?'✓':'+'}</button></div>`).join('')}</div>
+      <div class="tiny" style="margin-top:8px">Opt out <button class="tag" style="color:var(--ink3);text-decoration:line-through" onclick="toast('That toggle was removed in 2024.')">here</button></div></div>
+      ${note('No opt-out','exhibit 02',`<p>The setting to hide this module from your own profile was quietly removed. Consultants love having their competitors listed under their face.</p>`,['pav'])}
+    </div>
+    <div class="card card-body"><h2 style="font-size:14px">Reels for professionals</h2>
+      <div class="reel" id="reel" onclick="reelNext()"><div class="prog"><i id="reelbar"></i></div><div class="cap" id="reelcap">▶ Tap to watch</div><div class="tiny" style="color:#fff;opacity:.8">POV: you closed Q3 early</div></div>
+      ${note('TikTok-ification','exhibit 03',`<p>A vertical video tab was tested in 2024 and expanded in 2025. Critics: "a cross between TikTok and old Twitter," and "a great way to get fired."</p>`,['video'])}
+    </div>
+    <div class="card card-body" style="border-left:3px solid var(--gold)">
+      <span class="pill gold">PREMIUM</span>
+      <div style="font-weight:600;margin-top:4px">Someone at a Fortune 500 company viewed your profile.</div>
+      <button class="btn gold sm" style="margin-top:8px" onclick="openPremium()">See who</button>
+    </div>
+    <div class="card"><div class="card-body"><h2>Today's games</h2>
+      <div class="muted" style="margin-top:4px">Qeens · Pinpoint · Cringe Bingo</div>
+      <div class="tiny">3 connections beat your score. Stay professional.</div>
+      <button class="btn sm" style="margin-top:8px" onclick="go('games')">Play</button></div>
+      ${note('Games, for some reason','exhibit 04',`<p>Launched May 2024 to lift daily active usage (DAU/MAU went from 0.38 to 0.42). The professional network now has a leaderboard.</p>`,['games','games2'])}
+    </div>
+  </aside>`;
+}
+const REELS=["POV: you closed Q3 early","Day in the life of a Founder (9am: gym)","3 things I'd tell my 22-year-old self (buy a house)","Cold plunge + cold email = closed won","Why I fired my best employee (she asked for PTO)","Stop scrolling. Start scaling. (keep scrolling)"];
+let reelI=0,reelT;function reelNext(){reelI=(reelI+1)%REELS.length;const c=$('#reelcap'),b=$('#reelbar');if(!c)return;c.textContent=REELS[reelI];b.style.transition='none';b.style.width='0';requestAnimationFrame(()=>{b.style.transition='width 4s linear';b.style.width='100%'});clearTimeout(reelT);reelT=setTimeout(reelNext,4000);S.reelsWatched++;bump({burn:2,dig:-1});if(S.reelsWatched>=3)unlock('reel')}
+
+/* ───────────────────────── composer ───────────────────────── */
+let chips_={};
+function composer(){
+  const chips=[['link','Add external link','-50%'],['poll','Make it a poll','-60%'],['agree','End with "Agree?"','-40%'],['doc','PDF carousel','+35%'],['pod','Engagement pod','+80% then -100%'],['ai','Rewrite with AI','?']];
+  return `<div class="card"><div class="card-body">
+    <div class="row" style="align-items:flex-start">${avatar(YOU,S.otw?'otw':'')}
+      <div style="flex:1"><textarea id="draft" placeholder="Start a post. Or don't — the algorithm has already decided." oninput="updReach()"></textarea></div></div>
+    <div class="tools">
+      <button class="btn sm" onclick="madlib()">🙏 Announce something</button>
+      <button class="btn sm" onclick="selfieModal()">😭 Crying selfie</button>
+      <button class="btn sm" onclick="lessonGen()">🧵 Tragedy → lesson</button>
+      <button class="btn sm" onclick="cringeMeter()">📈 Cringe-o-meter</button>
+    </div>
+    <div class="chips" style="margin-top:8px" id="chips">${chips.map(c=>`<button class="chip" data-k="${c[0]}" aria-pressed="${!!chips_[c[0]]}" onclick="chip(this)">${c[1]} <span class="tiny">${c[2]}</span></button>`).join('')}</div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1"><div class="tiny" style="display:flex;justify-content:space-between"><span>Predicted reach</span><span id="reachN">${S.reach}%</span></div><div class="meter"><i id="reachBar" style="width:${S.reach}%"></i></div></div>
+      <button class="btn sm" onclick="toast('Scheduled for 7:14am Tuesday. The algorithm will be asleep.')">Schedule</button>
+      <button class="btn primary" onclick="publish()">Post</button>
+    </div>
+    <div class="tiny" id="reachWhy" style="margin-top:6px">70% of your reach is decided in the first 60–90 minutes. Have you considered posting at 7:14am Tuesday?</div>
+  </div>
+  ${note('The algorithm lab','exhibit 05',`<p>Toggle the chips and watch reach move. The numbers are the industry folklore — mostly from vendors selling scheduling tools — but the one recurring independent study (van der Blom, 2025) found typical creator views down ~50% YoY. "Rewrite with AI" is real: a Premium feature that adds em dashes and "It's not X. It's Y." to your post, while LinkedIn simultaneously suppresses posts that look like that.</p>`,['vdb','links','polls','tnw'])}
+  </div>`;
+}
+function madlib(){modal(`<h2>Announce something</h2><p class="muted">Humility is mandatory. Fill in the blanks.</p>
+  <div class="stack" style="margin-top:10px">
+  <select id="ml1"><option>Humbled</option><option>Thrilled</option><option>Honored</option><option>Grateful</option><option>Beyond excited</option><option>Speechless (see below)</option></select>
+  <select id="ml2"><option>joined a company</option><option>been laid off</option><option>been named to a list</option><option>finished a 10K</option><option>gotten married</option><option>been rejected 47 times</option><option>finished a book (PDF)</option></select>
+  <select id="ml3"><option>the team</option><option>my mentors</option><option>my 4-year-old</option><option>my Uber driver</option><option>the algorithm</option><option>everyone who doubted me</option></select>
+  <button class="btn primary" onclick="madlibGo()">Generate</button></div>`)}
+function madlibGo(){const a=$('#ml1').value,b=$('#ml2').value,c=$('#ml3').value;closeModal();
+  $('#draft').value=`${a} and honored to share that I have ${b}.\n\nThis is not about me.\n\nIt's about ${c}. 🙏\n\nTo everyone who believed in me: thank you.\nTo everyone who didn't: thank you even more.\n\n#Humbled #Gratitude #NewBeginnings`;updReach();bump({dig:-3});toast('Drafted. 12 executives have been pre-tagged.')}
+function lessonGen(){const t=rnd(["My dog died","My flight was cancelled","My barista spelled my name wrong","I got divorced","My toddler had a meltdown","I was laid off on my birthday","My dad's funeral was Tuesday"]);const l=rnd(["B2B sales","product-market fit","churn","leadership","cold outreach","quarterly planning"]);
+  $('#draft').value=`${t}.\n\nI didn't think I'd post about this.\n\nBut it taught me more about ${l} than any MBA.\n\n1. Pipeline is everything\n2. Follow up. Always.\n3. People remember how you made them feel — like customers\n\nRIP. And remember: your Q4 won't close itself. #${l.replace(/\W/g,'')}`;updReach();bump({dig:-8,clout:4});toast('Drafted. Grief has been converted to reach.')}
+function cringeMeter(){const v=($('#draft').value||'');let s=10;const hits=[];[[/humbled|honored|thrilled/i,'humble-brag',15],[/agree\?/i,'"Agree?"',15],[/it's not .+\. it's/i,'"It\'s not X. It\'s Y."',20],[/🧵|👇/,'thread emoji',10],[/\n\n.+\n\n.+\n\n/,'broetry spacing',10],[/#\w+/,'hashtags',5],[/lesson|taught me/i,'lesson-ification',15],[/4:30|5am|cold plunge/i,'hustle',10],[/toddler|4-year-old|uber driver/i,'child/driver oracle',20],[/funeral|died|divorce/i,'grief content',25]].forEach(([re,n,w])=>{if(re.test(v)){s+=w;hits.push(n)}});s=Math.min(100,s);
+  modal(`<h2>Cringe-o-meter</h2><div class="counter" style="font-size:48px">${s}<span class="tiny">/100</span></div><div class="meter"><i style="width:${s}%;background:${s>60?'var(--bad)':'var(--accent)'}"></i></div><p class="muted" style="margin-top:8px">${hits.length?'Detected: '+hits.join(', ')+'.':'Nothing detected. This post will get 3 likes.'} ${s>60?'Congratulations: the algorithm loves this and you will be screenshotted to a subreddit.':s>30?'Mid-tier cringe. Add a toddler.':'Too sincere. Try "Rewrite with AI".'}</p><button class="btn primary" onclick="closeModal()">Accept</button>`)}
+function chip(b){const k=b.dataset.k;const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);chips_[k]=on;
+  if(k==='ai'&&on){const d=$('#draft');d.value=rewriteAI(d.value||'I started a new job today.');unlock('rewritten');bump({dig:-3});toast('Rewritten. It is now 31% longer and 100% more suppressible.')}
+  if(k==='pod'&&on)bump({dig:-5});updReach();}
+function rewriteAI(t){const first=t.split(/[.!\n]/)[0].trim()||'I did a thing';
+  return `Most people think ${first.toLowerCase()} is the end.\n\nIt's not.\n\nIt's the beginning.\n\nHere's what nobody tells you 🧵\n\n→ ${first}\n→ Growth happens outside your comfort zone\n→ The journey matters more than the destination\n\nIt's not about the outcome — it's about who you become.\n\nAgree? ♻️ #Growth`;}
+function updReach(){let r=100,why=[];const d=$('#draft');const v=d?d.value:'';
+  if(chips_.link){r*=.5;why.push('external link (−50%)')}
+  if(chips_.poll){r*=.4;why.push('poll (−60%)')}
+  if(chips_.agree){r*=.6;why.push('"Agree?" (−40%)')}
+  if(chips_.doc){r*=1.35;why.push('PDF carousel (+35%)')}
+  if(chips_.pod){r*=1.8;why.push('engagement pod (+80%, until detected)')}
+  if(chips_.ai||/It's not\b/.test(v)){r*=.55;why.push('looks like AI (classifier −45%)')}
+  if(v.length>400){r*=1.2;why.push('long = dwell (+20%)')}
+  if(/http/.test(v)){r*=.5;why.push('URL detected (−50%)')}
+  if(!v.trim()){why.push('empty posts outperform 31% of the feed')}
+  S.reach=Math.max(1,Math.round(r));const n=$('#reachN'),b=$('#reachBar');if(n){n.textContent=S.reach+'%';b.style.width=Math.min(100,S.reach)+'%'}
+  const w=$('#reachWhy');if(w)w.textContent=why.length?'Why: '+why.join(' · ')+'. These numbers are from vendor blogs. So are everyone else\'s.':'70% of your reach is decided in the first 60–90 minutes. Have you considered posting at 7:14am Tuesday?';
+  const i=$('#imp');if(i)i.textContent=Math.round(S.reach*12);}
+function publish(img){const d=$('#draft');const text=(d&&d.value.trim())||(img?'Layoffs are the hardest part of leadership. This one hit different. 😭 #Vulnerability':'(empty post)');const p=mkPost({genre:'Your post',text,srcs:['vdb','tnw']});p.mine=true;p.img=img;p.likes=chips_.pod?412:3;S.posts.unshift(p);
+  GENRE_NOTE['Your post']=`<p>Posted. Predicted reach was ${S.reach}%. ${chips_.pod?'The pod delivered 412 likes in 4 minutes; the March 2026 "authenticity update" flags exactly that pattern, so distribution will be capped shortly.':'You got 3 likes: your mom, a bot, and a recruiter warming you up for a pitch.'}</p>`;
+  bump({clout:chips_.pod?12:3,burn:4,dig:-2});unlock('published');chips_={};render();addNotif('Your post is getting noticed! 3 views. Boost it for $49.');toast('Posted. An AI comment will arrive shortly.');
+  setTimeout(()=>{if(S.posts[0]===p){p.comments.push({who:rnd(PEOPLE),text:rnd(AI_COMMENTS).replace('{n}','You')});if(S.view==='feed')render()}},2500);}
+
+/* crying selfie generator */
+function selfieModal(){modal(`<h2>Crying selfie generator</h2><p class="muted">The 2022 original was about layoffs. Choose your mood.</p>
+  <canvas id="cv" width="320" height="320" style="width:100%;max-width:320px;border-radius:8px;border:1px solid var(--line);display:block;margin:10px 0"></canvas>
+  <div class="row" style="flex-wrap:wrap;gap:6px"><button class="btn sm" onclick="drawSelfie(1)">More tears</button><button class="btn sm" onclick="drawSelfie(2)">Add hoodie</button><button class="btn sm" onclick="drawSelfie(3)">Add caption</button><button class="btn primary sm" onclick="postSelfie()">Post it</button></div>`);drawSelfie(0)}
+let selfieState={tears:2,hoodie:false,cap:false};
+function drawSelfie(mode){if(mode===1)selfieState.tears+=2;if(mode===2)selfieState.hoodie=!selfieState.hoodie;if(mode===3)selfieState.cap=!selfieState.cap;if(mode===0)selfieState={tears:2,hoodie:false,cap:false};
+  const c=$('#cv');if(!c)return;const x=c.getContext('2d');x.fillStyle='#c9d3d8';x.fillRect(0,0,320,320);
+  x.fillStyle='#8aa0ad';x.fillRect(0,200,320,120);
+  if(selfieState.hoodie){x.fillStyle='#2b2f3a';x.beginPath();x.ellipse(160,300,130,110,0,0,Math.PI*2);x.fill();x.beginPath();x.ellipse(160,150,105,120,0,0,Math.PI*2);x.fill()}
+  x.fillStyle='#e8b894';x.beginPath();x.ellipse(160,160,85,105,0,0,Math.PI*2);x.fill();
+  x.fillStyle='#fff';[120,200].forEach(ex=>{x.beginPath();x.ellipse(ex,140,16,10,0,0,Math.PI*2);x.fill()});x.fillStyle='#3b2a20';[120,200].forEach(ex=>{x.beginPath();x.arc(ex,142,6,0,Math.PI*2);x.fill()});
+  x.strokeStyle='#3b2a20';x.lineWidth=4;x.beginPath();x.moveTo(100,118);x.lineTo(135,126);x.moveTo(220,118);x.lineTo(185,126);x.stroke();
+  x.beginPath();x.arc(160,215,22,Math.PI*1.15,Math.PI*1.85);x.stroke();
+  x.fillStyle='#5fb3e6';for(let i=0;i<selfieState.tears;i++){const ex=i%2?200:120;const y=158+((i>>1)*22)%80;x.beginPath();x.ellipse(ex+(i%2?6:-6),y,5,9,0,0,Math.PI*2);x.fill()}
+  x.fillStyle='rgba(255,255,255,.85)';x.fillRect(0,280,320,40);x.fillStyle='#222';x.font='bold 13px sans-serif';x.textAlign='center';x.fillText(selfieState.cap?'This will be the most vulnerable post I ever make.':'Layoffs are the hardest part of leadership.',160,305)}
+function postSelfie(){const c=$('#cv');const img=c.toDataURL();closeModal();go('feed');$('#draft').value='';publish(img);unlock('cried');bump({clout:15,dig:-20});toast('Posted. 12,000 people have screenshotted it to a subreddit.')}
+
+/* ───────────────────────── feed ───────────────────────── */
+function feed(){
+  if(!S.posts.length) for(let i=0;i<5;i++) S.posts.push(mkPost());
+  return `<div class="page">${leftRail()}<section>
+    <div class="card intro"><h1>Welcome to LonkedOut.</h1><p>A working parody of the professional network everyone has to use and nobody likes. Everything is clickable: names, hashtags, counters, the search bar, the buttons that should not exist. Watch your <b>Clout</b>, <b>Burnout</b>, and <b>Dignity</b> in the strip above, collect trophies, and open the dashed <span class="mono">◧ exhibit notes</span> for the real complaint behind each joke, with sources.</p></div>
+    ${composer()}
+    <div id="posts">${S.posts.map(postHTML).join('')}</div>
+    <div style="text-align:center;margin:8px 0 20px"><button class="btn" onclick="moreSlop()">Load more slop</button> <span class="tiny">(${S.slopCount} generated so far · 81.2% of long posts are likely AI)</span></div>
+  </section>${rightRail()}</div>`;
+}
+function mkPost(t){t=t||rnd(TEMPLATES);const who=t.who===undefined?rnd(PEOPLE):PEOPLE[t.who];S.slopCount++;
+  return {id:'p'+Math.random().toString(36).slice(2),t,who,likes:Math.floor(Math.random()*4000)+12,comments:[],reacted:null,suppressed:false,expanded:false,mine:false,voted:false};}
+const linkify = s => esc(s).replace(/#(\w+)/g,(m,t)=>`<button class="tag" onclick="hashtag('${t}')">#${t}</button>`);
+function postHTML(p){
+  const who=p.mine?YOU:p.who;
+  return `<article class="card ${p.suppressed?'suppressed':''}" id="${p.id}">
+    <div class="post">
+      <div class="head" style="position:relative">${avatar(who,p.mine&&S.otw?'otw':'')}<div style="flex:1;min-width:0"><div class="name">${nameBtn(who)} ${p.t.genre==='Humblebrag'||p.t.genre==='Toddler KPI'?'<span class="pill gold">Top Voice</span>':''} ${p.mine?(S.badges.length?'<span class="pill gold">Top Voice</span>':''):'<span class="tiny">· 2nd</span>'} ${!p.mine&&!who._conn?`<button class="tag" style="font-size:12px" onclick="connect(${pidx(who)})">+ Connect</button>`:''}</div><div class="headline">${esc(who[1])}</div><div class="tiny">${p.t.sponsored?'<span class="sponsored">Promoted</span>':`${Math.floor(Math.random()*22)+1}h · 🌐`}</div></div>
+        <button class="kebab" aria-label="More options" onclick="kebab('${p.id}',event)">···</button></div>
+      <div class="body ${p.expanded||p.mine?'':'clamp'}">${linkify(p.t.text)}</div>
+      ${p.img?`<img class="selfie" src="${p.img}" alt="Generated crying selfie">`:''}
+      ${!p.expanded&&!p.mine?`<button class="more" onclick="expand('${p.id}')">…see more</button>`:''}
+      ${p.t.poll?`<div class="poll ${p.voted?'voted':''}">${p.t.poll.map((o,i)=>{const pct=[41,33,22,4][i];return `<button onclick="vote('${p.id}')">${p.voted?`<i style="width:${pct}%"></i>${o} · ${pct}%`:o}</button>`}).join('')}<div class="tiny">${Math.floor(Math.random()*9000)+300} votes · 6d left</div></div>`:''}
+      <div class="social"><button class="tag" style="color:var(--ink2);font-weight:400;font-size:12px" onclick="whoLiked('${p.id}')">👍💡🎉 ${p.likes.toLocaleString()}</button><span>${p.comments.length+Math.floor(p.likes/9)} comments · ${Math.floor(p.likes/20)} reposts</span></div>
+      <div class="actions" id="act-${p.id}">
+        <button onclick="react('${p.id}','👍')" onmouseenter="reactBar('${p.id}')">${p.reacted?p.reacted+' Reacted':'👍 Like'}</button>
+        <button onclick="react('${p.id}',null,true)">💬 Comment</button>
+        <button onclick="repost('${p.id}')">♻️ Repost</button>
+        <button onclick="share('${p.id}')">➤ Send</button>
+      </div>
+      ${p.comments.map(c=>`<div class="comment">${avatar(c.who,'sm')}<div class="bubble"><b>${esc(c.who[0])}</b> <span class="tiny">· ${c.who===YOU?'AI-drafted for you':'AI-suggested'}</span><br>${esc(c.text)}</div></div>`).join('')}
+    </div>
+    ${note(`Genre: ${p.t.genre}`,'exhibit',GENRE_NOTE[p.t.genre]||'',p.t.srcs||[])}
+  </article>`;
+}
+const GENRE_NOTE = {
+  "AI slop":`<p>Em dashes, "It's not X. It's Y.", three arrows, a 🧵 with no thread. Originality.ai estimated 54% of long posts were likely AI by late 2024 and 81% by mid-2026; median engagement fell 56% as the feed filled with it. LinkedIn's answer: a "Seems like AI slop" report option and a classifier that quietly <em>suppresses</em> (not removes) generic posts — after shipping the tools that write them.</p>`,
+  "Broetry":`<p>One sentence per line, a cliffhanger above the "see more" fold, a moral at the bottom. BuzzFeed News named it in 2017; its inventor admitted it's "spoonfeeding people exactly what they want." It exists because the fold-click counts as dwell time.</p>`,
+  "Humblebrag":`<p>"Humbled to announce" is the platform's calling card — performative modesty stapled to a press release, with a dozen executives tagged so the algorithm sees engagement.</p>`,
+  "Fake inspirational":`<p>The "homeless man is now my Head of Sales" genre: unverifiable, centers the poster in someone else's hardship, and ends with a hashtag. The 2022 "crying CEO" selfie (a real post about layoffs) is credited with turning cringe into a backlash culture.</p>`,
+  "Tragedy as a lesson":`<p>"My wife died. Here's what it taught me about B2B sales" is a real-world title that satirists and sincere posters have both written — the genre is past Poe's law.</p>`,
+  "Hustle culture":`<p>4:30am, cold plunge, honeymoon spent working. Hustle content was rewarded for years; 2025 commentary describes an "authenticity shift" as burnout and quiet-quitting pushed back.</p>`,
+  "Hired-on-the-spot":`<p>A staple of r/LinkedInLunatics: a candidate is late / brings a kid / cries, and is hired instantly for "grit." Follow-ups rarely mention retention.</p>`,
+  "Toddler KPI":`<p>Child says something; poster discovers a sales funnel. The gold Top Voice badge next to this name was handed out automatically for AI-answering AI-generated "collaborative articles" — 10M+ contributions before LinkedIn retired the badge in October 2024 as a participation trophy.</p>`,
+  "Engagement bait":`<p>"Agree?", "comment PLAYBOOK", "repost if you agree." Vendor data claims the 2026 "authenticity update" cuts reach for these by ~40%, after years of rewarding them.</p>`,
+  "Open to Work discourse":`<p>220M people use the green frame. A Hung Lee poll of recruiters: 70% say it helps, 7% say it hurts — but an ex-Google recruiter called it "the biggest red flag on LinkedIn," and the argument itself is now an evergreen reach farm.</p>`,
+  "Lead-magnet gate":`<p>The course is the secret. "Link in comments" exists because external links are believed to cut reach 40–60% — a belief a 2026 study of 400k posts contradicts, which hasn't stopped anyone.</p>`,
+  "Poll":`<p>Polls once got a reach multiplier, were abused as bait, then reportedly lost ~60% of reach. The options are still obvious. Vote to see results that were decided in advance.</p>`,
+  "Sponsored":`<p>Premium revenue passed $1.7B in FY2024, credited to AI features — including the ones that generate the content the feed classifier now demotes.</p>`,
+  "Proposal":`<p>A 2023 proposal-as-B2B-lesson post was "torn to shreds" and became a subreddit classic. Weddings, births, and funerals all convert to pipeline.</p>`,
+  "Uber driver":`<p>The service-worker oracle: an Uber driver, barista, or janitor delivers a one-line aphorism that justifies the poster's existing strategy. Nobody has ever met the driver.</p>`,
+  "Repost":`<p>Reposting without comment is the lowest-effort engagement and is treated as such: the algorithm prefers original posts, so your 500+ connections mostly won't see it.</p>`,
+};
+function expand(id){const p=S.posts.find(p=>p.id===id);p.expanded=true;bump({burn:1});render();toast('Dwell time recorded. That click was the entire point of the formatting.')}
+function reactBar(id){const a=$('#act-'+id);if(!a||a.querySelector('.reacts'))return;const r=document.createElement('div');r.className='reacts';r.innerHTML=['👍','👏','❤️','💡','😂','🫠'].map(e=>`<button onclick="react('${id}','${e}');event.stopPropagation()">${e}</button>`).join('');a.appendChild(r);a.addEventListener('mouseleave',()=>r.remove(),{once:true})}
+function react(id,emoji,comment){
+  const p=S.posts.find(p=>p.id===id);p.reacted=emoji||p.reacted||'👍';p.likes++;
+  const who=rnd(PEOPLE);p.comments.push({who,text:rnd(AI_COMMENTS).replace('{n}',(p.mine?'You':p.who[0]).split(' ')[0])});
+  if(comment)p.comments.push({who:YOU,text:rnd(AI_COMMENTS).replace('{n}',p.who[0].split(' ')[0])});
+  bump({clout:1,burn:1,dig:-1});unlock('first_like');render();addNotif(`${who[0]} also commented on a post you ${comment?'commented on':'reacted to'}. Reply to keep the conversation meaningful!`);
+  toast(emoji==='🫠'?'🫠 is not an official reaction. It has been recorded as "Insightful".':comment?'We drafted your comment for you. It restates the post. Everyone\'s does.':'Reacted. An AI-suggested comment has been added on your behalf.');}
+function vote(id){const p=S.posts.find(p=>p.id===id);p.voted=true;bump({dig:-1});render();toast('Vote counted. Results were decided in advance. Reach of this poll: −60%.')}
+function repost(id){const p=S.posts.find(p=>p.id===id);const r=mkPost({genre:'Repost',text:`Reposting this because it resonated. 🙌\n\n— — —\n\n${p.t.text}`,srcs:['vdb']});r.mine=true;r.likes=1;S.posts.unshift(r);bump({clout:1,dig:-3});render();toast('Reposted to 500+ people who will not see it.')}
+function share(id){modal(`<h2>Send post</h2><p class="muted">Choose a connection to annoy.</p><div class="stack" style="margin-top:8px">${PEOPLE.slice(0,4).map(p=>`<button class="btn sm" style="justify-content:flex-start" onclick="closeModal();toast('Sent to ${esc(p[0].split(' ')[0])}. Seen. No reply. A pitch is incoming.');bump({dig:-1});setTimeout(()=>addThread(PEOPLE[${pidx(p)}]),1500)">${esc(p[0])}</button>`).join('')}<button class="btn ghost sm" onclick="closeModal();toast('Copied link. Nobody will click it; it\\'s external.')">Copy link</button></div>`)}
+function whoLiked(id){const p=S.posts.find(p=>p.id===id);modal(`<h2>Reactions</h2><p class="muted">${p.likes.toLocaleString()} reactions. Showing 5. The rest are Premium.</p><div class="stack" style="margin-top:8px">${PEOPLE.slice(0,5).map(p=>`<div class="row">${avatar(p,'sm')}<div><b>${esc(p[0])}</b><div class="tiny">${esc(p[1]).slice(0,40)}…</div></div><span class="tiny" style="margin-left:auto">${rnd(['👍','👏','💡','❤️'])} bot</span></div>`).join('')}</div><button class="btn gold sm" style="margin-top:10px" onclick="closeModal();openPremium()">See all ${p.likes.toLocaleString()}</button>`)}
+function kebab(id,ev){
+  ev.stopPropagation();document.querySelectorAll('.menu').forEach(m=>m.remove());
+  const m=document.createElement('div');m.className='menu';
+  m.innerHTML=`<button onclick="slop('${id}')">🫠 Seems like AI slop</button><button onclick="toast('Hidden. It will return as a Promoted post.');bump({dig:1})">Hide post</button><button onclick="toast('Unfollowed. You still see them, via People also viewed.')">Unfollow</button><button onclick="toast('Saved to a folder you will never open.')">Save</button><button onclick="toast('Reported. Our classifier is 94% accurate. This post was the other 6%.')">Report</button><button onclick="copyPost('${id}')">Copy text as my own</button>`;
+  ev.target.closest('.head').appendChild(m);setTimeout(()=>document.addEventListener('click',()=>m.remove(),{once:true}));}
+function copyPost(id){const p=S.posts.find(p=>p.id===id);$('#draft').value=p.t.text;updReach();bump({dig:-10,clout:2});toast('Copied into your composer. Original thought is optional.');window.scrollTo({top:0,behavior:'smooth'})}
+function slop(id){const p=S.posts.find(p=>p.id===id);p.suppressed=true;bump({dig:2});unlock('slop_reporter');render();toast('Thanks. This post has been suppressed, not removed. The author will not be told. Their "Rewrite with AI" subscription renews Tuesday.')}
+function moreSlop(){for(let i=0;i<4;i++)S.posts.push(mkPost());bump({burn:3});render();toast('4 more posts. Statistically, 3.25 of them are AI.')}
+
+/* ───────────────────────── jobs ───────────────────────── */
+let sent=0,rej=0;
+function jobs(){
+  return `<div class="page two"><section>
+    <div class="card card-body"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div><h2>Jobs for you</h2><div class="muted">Based on a keyword you had in your headline in 2017.</div>
+        <div class="chips" style="margin-top:8px">${['Remote (in office)','Entry level (10+ yrs)','Easy Apply','Posted this week (reposted)','Under 10 applicants (lie)'].map(f=>`<button class="chip" onclick="this.setAttribute('aria-pressed',this.getAttribute('aria-pressed')!=='true');toast('Filter applied. Results unchanged.')">${f}</button>`).join('')}</div></div>
+      <div style="text-align:right"><div class="counter" id="appsMin">11,000</div><div class="tiny">applications submitted per minute, platform-wide</div></div></div>
+    </div>
+    <div class="card">
+      <div id="joblist">${JOBS.map((j,i)=>jobHTML(j,i)).join('')}</div>
+      <div class="card-body row" style="flex-wrap:wrap"><button class="btn sm" onclick="revealGhosts()">🔍 Reveal ghost jobs</button><button class="btn sm" onclick="applyAll()">⚡⚡ Easy Apply to everything</button><span class="tiny">(hover a listing, or click a title for the description)</span></div>
+      ${note('Ghost jobs','exhibit 06',`<p>Roughly a quarter of US listings are likely inactive (ResumeUp: 27.4%; Greenhouse found 18–22% on its own ATS). Four in ten companies admit posting a fake job — 59% "to collect resumes for later," 62% "to make staff feel replaceable." In July 2026 the Texas Attorney General opened an investigation into LinkedIn for selling Premium subscribers access to jobs it "does not independently verify." Meanwhile more than half of job seekers hear back from fewer than 5% of applications.</p>`,['ghost1','ghost2','ghost3','txag','seekers'])}
+    </div>
+  </section>
+  <aside class="rail">
+    <div class="card card-body" style="border-left:3px solid var(--gold)"><span class="pill gold">PREMIUM</span>
+      <div style="font-weight:600;margin-top:4px">You'd be a Top Applicant for 6 of these jobs.</div>
+      <div class="tiny">Top Applicant means top 50%. Of 1,247. Who used Easy Apply. With the same AI résumé.</div>
+      <button class="btn gold sm" style="margin-top:8px" onclick="openPremium('See how you compare to 1,246 strangers','Premium applicants are “2.6× more likely to get hired.” Than whom, by what measure, is not on the page.')">See applicant insights</button></div>
+    <div class="card card-body"><h2 style="font-size:14px">Your application stats</h2>
+      <div class="stack" style="margin-top:8px;font-size:13px">
+        <div class="row" style="justify-content:space-between"><span class="muted">Applications sent</span><b id="mysent">${sent}</b></div>
+        <div class="row" style="justify-content:space-between"><span class="muted">Viewed by a human</span><b>0</b></div>
+        <div class="row" style="justify-content:space-between"><span class="muted">Rejected by ATS in <0.5s</span><b id="myrej">${rej}</b></div>
+        <div class="row" style="justify-content:space-between"><span class="muted">Expected response rate</span><b>3–13%</b></div></div>
+      <button class="btn sm" style="margin-top:10px" onclick="resumeModal()">📄 Manage résumé</button>
+      ${note('Easy Apply','exhibit 07',`<p>One click attaches whatever résumé you uploaded last (2019's, probably) and drops you into a pile that hit "1,000+" in an hour. Recruiters describe an "applicant tsunami" of near-identical AI résumés; 34% spend up to half the week filtering bots, then deprioritise Easy Apply entirely. The counter that demoralises you also sells the Premium "applicant insights" upsell.</p>`,['nyt','cnbcfire','easy','topapp','topapp2'])}
+    </div>
+  </aside></div>`;
+}
+function jobHTML(j,i){const[t,co,loc,pay,col,days,ghost]=j;const apps=ghost?1000:Math.floor(Math.random()*900)+40;
+  return `<div class="job ${ghost?'is-ghost':''}" id="job${i}" onmouseenter="if(this.classList.contains('is-ghost'))this.classList.add('reveal')">
+    <div class="co" style="background:${col}">${co[0]}</div>
+    <div style="flex:1;min-width:0"><button class="title" onclick="jobDetail(${i})">${esc(t)}</button><div class="meta">${co} · ${loc} · ${pay}</div>
+      <div class="apps"><span class="live" data-n="${apps}">${apps>=1000?'1,000+':apps}</span> applicants · Posted ${days} day${days===1?'':'s'} ago ${days>30?'<span class="tiny">(reposted 4 times)</span>':''}</div>
+      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><button class="btn primary sm" onclick="easyApply(${i})">⚡ Easy Apply</button> ${i%2?'<span class="pill acc">Actively recruiting</span>':'<span class="pill acc">High match</span>'} <button class="btn ghost sm" onclick="toast('Saved. You will receive a reminder the day after it closes.')">Save</button></div></div>
+    <span class="pill bad ghost">👻 GHOST JOB</span></div>`;}
+function jobDetail(i){const j=JOBS[i];const reqs=[...JD].sort(()=>Math.random()-.5).slice(0,5);
+  modal(`<span class="pill acc">${j[6]?'Reposted':'New'}</span><h2 style="margin-top:6px">${esc(j[0])}</h2><div class="muted">${j[1]} · ${j[2]} · ${j[3]}</div>
+  <div class="jd" style="margin-top:10px"><b>About the role</b><p>We're a ${rnd(['fast-paced','mission-driven','AI-first','category-defining','post-revenue'])} ${rnd(['startup','scale-up','family','rocketship','collective'])} looking for a ${rnd(['rockstar','ninja','10x','self-starter','unicorn'])} who ${rnd(['wears many hats','thrives in chaos','moves fast and breaks things','is passionate about synergy'])}.</p><b>Requirements</b><ul>${reqs.map(r=>`<li>${r}</li>`).join('')}</ul><b>Salary</b><p>${j[3]} ${j[3].includes('$')?'(range so wide it\'s a lie)':'(we said it)'}</p></div>
+  <div class="row" style="margin-top:10px"><button class="btn primary" onclick="closeModal();easyApply(${i})">⚡ Easy Apply</button><button class="btn ghost" onclick="closeModal()">Close</button></div>`);bump({burn:1})}
+function revealGhosts(){document.querySelectorAll('.job.is-ghost').forEach(j=>j.classList.add('reveal'));unlock('ghostbuster');bump({dig:3,burn:2});toast('4 of 8 listings are collecting résumés for a role that was filled internally in March.')}
+function easyApply(i){const j=JOBS[i];sent++;S.apps++;const n=S.apps.toLocaleString();const e=$('#mysent');if(e)e.textContent=sent;unlock('applied');bump({burn:5,dig:-2,clout:0});
+  modal(`<h2>Application sent! You are applicant #${n}.</h2><p class="muted">We attached "resume_FINAL_v2_2019.pdf" without asking. ${j[6]?'This listing is '+j[5]+' days old and was reposted 4 times; nobody is reading it.':'A human may view this in 4–6 weeks.'} Premium would have told you that you're a Top Applicant (top 50%).</p><div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn gold" onclick="closeModal();openPremium()">Become Top Applicant</button><button class="btn ghost" onclick="closeModal()">Keep waiting</button></div>`);
+  setTimeout(()=>{rej++;const r=$('#myrej');if(r)r.textContent=rej;addNotif(`Update on your application to ${j[1]}: after careful consideration (0.31s), we've decided to move forward with other candidates.`)},4000);}
+function applyAll(){JOBS.forEach((j,i)=>{sent++;S.apps++;setTimeout(()=>{rej++;const r=$('#myrej');if(r)r.textContent=rej;addNotif(`${j[1]}: we've decided to move forward with other candidates.`)},1500+i*700)});const e=$('#mysent');if(e)e.textContent=sent;unlock('applied');bump({burn:20,dig:-6});modal(`<h2>8 applications sent in 0.4 seconds.</h2><p class="muted">You are now part of the 11,000-per-minute problem. Recruiters will spend half their week filtering you out. Rejections are queued.</p><button class="btn primary" onclick="closeModal()">Worth it</button>`)}
+function resumeModal(){modal(`<h2>Your résumés</h2><div class="stack" style="margin-top:8px;font-size:13px">${['resume_FINAL_v2_2019.pdf ← default (you cannot change this)','resume_FINAL_FINAL.pdf','resume_actually_final_USE_THIS.docx','Resume (1) (1).pdf'].map((f,i)=>`<div class="row" style="justify-content:space-between"><span>📄 ${f}</span><button class="btn sm" onclick="toast('${i?'Set as default. (Not really. It’s still 2019.)':'Already default.'}')">Use</button></div>`).join('')}</div>`)}
+
+/* ───────────────────────── messages ───────────────────────── */
+let threads=null,openT=0;
+function ensureThreads(){if(!threads){threads=[4,2,1,0,3,5].map((pi,i)=>({who:PEOPLE[pi],text:SPAM[i%SPAM.length]('Sundeep'),unread:i<3,replies:[]}))}}
+function addThread(p,text){ensureThreads();threads.unshift({who:p,text:text||rnd(SPAM)('Sundeep'),unread:true,replies:[]});openT=0;if(S.view!=='msgs')S.msgsUnread++;renderTabs();if(S.view==='msgs')render()}
+function msgs(){ensureThreads();const t=threads[openT];
+  return `<div class="page two"><section>
+    <div class="card" style="display:grid;grid-template-columns:260px 1fr;min-height:440px">
+      <div style="border-right:1px solid var(--line)">
+        <div class="card-body" style="border-bottom:1px solid var(--line)"><h2>Messaging</h2><div class="tiny"><button class="tag" style="font-size:12px">Focused</button> · <button class="tag" style="font-size:12px;color:var(--ink3)" onclick="toast('Other: 847 messages. All of them are this.')">Other (847)</button></div></div>
+        ${threads.slice(0,9).map((th,i)=>`<div class="thread ${th.unread?'unread':''}" onclick="openT=${i};threads[${i}].unread=false;render()">${avatar(th.who,'sm')}<div style="min-width:0"><div class="who" style="font-size:13px">${esc(th.who[0])}</div><div class="prev">${esc(th.text)}</div></div></div>`).join('')}
+        <div class="card-body"><button class="btn sm" onclick="addThread(rnd(PEOPLE));bump({burn:2});toast('New connection accepted → pitch delivered in 0.8s.')">Accept a connection request</button></div>
+      </div>
+      <div class="card-body"><div class="row">${avatar(t.who,'sm')}<div><div style="font-weight:600">${nameBtn(t.who)} ${pidx(t.who)%2?'<span class="pill acc">✓ Verified</span>':''}</div><div class="tiny">${esc(t.who[1])}</div></div></div>
+        <div class="msg">${esc(t.text)}</div>
+        ${t.replies.map(r=>`<div class="msg ${r.me?'me':''}">${esc(r.text)}</div>`).join('')}
+        ${t.replies.length?`<div class="tiny">✓ Seen. InMail credit refunded to sender. ${esc(t.who[0].split(' ')[0])} is typing… (no they aren't)</div>`:''}
+        <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:6px">
+          <button class="btn sm" onclick="reply(${openT},'No thanks, not interested.')">Not interested</button>
+          <button class="btn sm" onclick="reply(${openT},'Sure, send me the deck!')">Sure, send the deck</button>
+          <button class="btn sm" onclick="reply(${openT},'What is the salary range?')">Ask salary</button>
+          <button class="btn sm" onclick="reply(${openT},'Unsubscribe')">Unsubscribe</button>
+          <button class="btn ghost sm" onclick="toast('Reported. The account is Verified, so it stays.')">Report</button></div>
+      </div>
+    </div>
+    ${note('The InMail economy','exhibit 08',`<p>Recruiters pay per InMail but get the credit refunded if you reply — even to say no. So volume is free and reading your profile is optional: "I was so impressed by your background" goes to 400 people, and the reply gets ghosted. The "Verified" tick requires handing a government ID to a third party, and scam messages routinely arrive from verified accounts anyway.</p>`,['inmail','blindghost','verify','notif'])}
+  </section>
+  <aside class="rail"><div class="card card-body"><h2 style="font-size:14px">Spam generator</h2><div class="tiny">Every DM on this page came from seven templates. So did the real ones.</div>
+    <button class="btn sm" style="margin-top:8px" onclick="addThread(rnd(PEOPLE))">Generate recruiter DM</button>
+    <button class="btn sm" style="margin-top:8px" onclick="for(let i=0;i<6;i++)addThread(rnd(PEOPLE));bump({burn:6});toast('Monday morning simulated.')">Simulate Monday</button></div>
+    <div class="card card-body"><h2 style="font-size:14px">AI reply suggestions</h2><div class="tiny">"Thanks for reaching out!" · "Sounds great!" · "Let's connect!" — all three mean no.</div></div></aside></div>`;
+}
+function reply(i,text){const t=threads[i];t.replies.push({me:true,text});unlock('replied');bump({dig:text==='Sure, send me the deck!'?-5:1,burn:1});
+  const r={'No thanks, not interested.':null,'Sure, send me the deck!':'Amazing!! Here is a 48-slide deck. Also, are you free Thursday? And Friday? And now?','What is the salary range?':null,'Unsubscribe':'Thanks for your interest! I\'ve added you to our weekly newsletter.'}[text];
+  if(r)setTimeout(()=>{t.replies.push({me:false,text:r});if(S.view==='msgs')render()},1200);render();toast(text==='What is the salary range?'?'Seen. No reply. Ever.':'Reply sent. Credit refunded.')}
+
+/* ───────────────────────── notifications ───────────────────────── */
+function addNotif(t){S.notifs.unshift({t,new:true,at:'now'});if(S.view!=='notifs')S.unread++;if(S.notifs.length>80)S.notifs.pop();renderTabs();if(S.view==='notifs')render()}
+function notifs(){
+  return `<div class="page two"><section><div class="card">
+    <div class="card-body row" style="justify-content:space-between;flex-wrap:wrap"><h2>Notifications</h2><div class="row"><button class="btn sm" onclick="firehose()">🚒 Open the firehose</button><button class="btn ghost sm" onclick="S.notifs=[];render();toast('Cleared. 14 more are on the way.')">Clear</button></div></div>
+    <div id="nlist">${S.notifs.length?S.notifs.map((n,i)=>`<div class="notif ${n.new?'new':''}" onclick="notifClick(${i})"><span>🔔</span><span>${esc(n.t)}</span><span class="t">${n.at}</span></div>`).join(''):'<div class="card-body muted">Quiet. That will not last.</div>'}</div>
+    ${note('Manufactured urgency','exhibit 09',`<p>"Be the first to engage." "You appeared in 47 searches." "Congratulate X on a work anniversary" (they were laid off). Each notification is a re-engagement hook; the email versions have dozens of separate toggles you have to hunt down. The original "Add Connections" flow — which emailed your whole address book and sent two unconsented reminders in your name — cost LinkedIn a $13M settlement in 2015 and is the textbook example of the "Friend Spam" dark pattern.</p>`,['notif','perkins','dd'])}
+  </div></section>
+  <aside class="rail"><div class="card card-body"><h2 style="font-size:14px">Email preferences</h2>
+    ${['Profile views','Job alerts','Games','Network updates','Learning nudges','Who\'s hiring','Things you missed','Things you didn\'t miss'].map(x=>`<label class="setting" style="padding:6px 0"><span>${x}</span><input type="checkbox" class="toggle" checked onchange="this.checked=true;toast('Saved. (Re-enabled by a future update.)');bump({burn:1})"></label>`).join('')}
+  <button class="btn sm" style="margin-top:8px" onclick="toast('Unsubscribe link opened a page with 31 more toggles.')">Unsubscribe from all</button></div></aside></div>`;
+}
+function notifClick(i){const n=S.notifs[i];n.new=false;const t=n.t;if(/Premium|searches|viewed/i.test(t))openPremium();else if(/job|application|hiring/i.test(t))go('jobs');else if(/message|sent you/i.test(t))go('msgs');else if(/Qeens|puzzle/i.test(t))go('games');else if(/Endorse/i.test(t))go('me');else{go('feed');toast('Taken to the feed. The post is gone. The notification remains.')}}
+function firehose(){let i=0;const iv=setInterval(()=>{addNotif(rnd(NOTIFS));if(++i>=14)clearInterval(iv)},180);S.notifs.forEach(n=>n.new=false);unlock('firehose');bump({burn:8})}
+
+/* ───────────────────────── profile / settings ───────────────────────── */
+const SKILLS=[["Microsoft Excel",99],["Kubernetes",41],["Blockchain",37],["Leadership",88],["Pet Grooming",12],["Quantum Computing",29],["Being Humbled",500]];
+const COLLAB=[["What do you do if your team's morale is low after a round of layoffs?","Flash Programming"],["How can you use blockchain to improve employee retention?","Synergy Strategy"],["You're a barista. How do you pivot to quantum computing?","Career Pivots"],["What are the best ways to cold-call someone who has died?","Cold Calling"],["How do you grieve while maintaining pipeline velocity?","Sales Leadership"]];
+function me(){
+  return `<div class="page two"><section>
+    <div class="card"><div class="banner"></div><div class="profile-top"><div class="row" style="align-items:flex-end;gap:16px">${avatar(YOU,S.otw?'otw':'')}<div style="padding-bottom:6px;min-width:0"><h2 style="font-size:20px">You <span class="pill acc">✓ Verified</span> ${S.badges.length?`<span class="pill gold">Top Voice ×${S.badges.length}</span>`:''}</h2><div class="muted" id="hl">${esc(YOU[1])}</div><div class="tiny">Earth · ${S.conns>=500?'500+':S.conns} connections · <button class="tag" style="font-size:12px" onclick="openPremium('Contact info is Premium.','You can see your own email for $39.99/mo.')">Contact info</button></div>
+      <div class="badges">${S.badges.map(b=>`<span class="pill gold">🏅 ${esc(b)}</span>`).join('')}</div></div></div>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn primary sm" onclick="S.otw=!S.otw;bump(S.otw?{clout:3,dig:-4}:{dig:2});render()">${S.otw?'Remove':'Add'} #OpenToWork frame</button><button class="btn sm" onclick="headline()">Generate headline</button><button class="btn sm" onclick="toast('Profile strength: All-Star. This metric has no meaning.');bump({clout:1})">Profile strength</button><button class="btn gold sm" onclick="openPremium()">Premium</button></div></div>
+      ${note('The green frame','exhibit 10',`<p>220M people wear it. LinkedIn says it doubles recruiter messages; recruiters literally filter on it; an ex-Google recruiter called it "the biggest red flag"; an ex-Nike talent lead says anyone who tells you to remove it "is trying to sell you something." Both camps post about it weekly, for reach.</p>`,['otw','otw2'])}
+    </div>
+    <div class="card"><div class="card-body"><h2>Collaborative articles <span class="pill gold">Earn Top Voice</span></h2><div class="muted">An AI wrote the question. Add your perspective (an AI will write that too).</div>
+      <div id="collab" style="margin-top:8px">${collabHTML()}</div></div>
+      ${note('Badge farming','exhibit 11',`<p>In 2023 LinkedIn generated article prompts with AI — some asking for Flash tips years after Flash died — and handed out gold "Top Voice" badges to frequent contributors. People pasted AI answers into AI questions; tools automated it; 10M+ contributions later LinkedIn retired the badge (Oct 2024) as a participation trophy. Earn yours below.</p>`,['topvoice','topvoice2'])}
+    </div>
+    <div class="card"><div class="card-body"><h2>Skills &amp; endorsements</h2>
+      ${SKILLS.map((s,i)=>`<div class="endorse"><span>${s[0]} <span class="tiny">· <span id="sk${i}">${s[1]}</span> endorsements</span></span><button class="btn sm" onclick="SKILLS[${i}][1]++;document.getElementById('sk${i}').textContent=SKILLS[${i}][1];unlock('endorsed');bump({clout:1,dig:-1});toast('Endorsed by someone you met once at a conference.')">Endorse</button></div>`).join('')}
+      <div class="muted" style="margin-top:10px">Does <b>Marcus Delgado-Pike</b> know about <b id="rskill">Blockchain</b>? <button class="btn sm" onclick="roulette(true)">Yes</button> <button class="btn ghost sm" onclick="roulette(false)">Skip</button></div></div>
+      ${note('Endorsement roulette','exhibit 12',`<p>One click, no context, reciprocal by design — and LinkedIn prompts you to endorse skills people never listed. interviewing.io found a candidate's top-endorsed language matched the one they actually interviewed in less than half the time. Recruiters say they ignore it.</p>`,['endorse'])}
+    </div>
+    <div class="card"><div class="card-body"><h2>Settings &amp; privacy</h2>
+      <label class="setting"><span>Profile visibility</span><input type="checkbox" class="toggle" checked onchange="this.checked=true;toast('Visibility is mandatory for Open to Work. Also for everything.')"></label>
+      <label class="setting"><span>Show "People also viewed" on my profile</span><input type="checkbox" class="toggle" checked disabled title="Removed"></label>
+      <label class="setting"><span>Email me about things I missed</span><input type="checkbox" class="toggle" checked onchange="this.checked=true;toast('Saved. Re-enabled.')"></label>
+      <label class="setting"><span>Play games against my connections</span><input type="checkbox" class="toggle" checked onchange="toast('Your manager can still see your scores.')"></label>
+      <label class="setting"><span>Dark mode</span><input type="checkbox" class="toggle" ${document.documentElement.dataset.theme==='dark'?'checked':''} onchange="document.documentElement.dataset.theme=this.checked?'dark':'light';toast('Theme saved. Premium members get a third theme.')"></label>
+      <div class="buried">Data privacy › Data for Generative AI Improvement (we turned this on for you in September 2024, then updated the policy)</div>
+      <label class="setting"><span>Use my data for training content-creation AI models</span><input type="checkbox" class="toggle" ${S.aiTrain?'checked':''} onchange="S.aiTrain=this.checked;bump(this.checked?{dig:-2}:{dig:3});toast(this.checked?'On. Your posts are now training the thing that writes the posts.':'Off for future training. Past training is, well, past.')"></label></div>
+      ${note('Opt-in by default','exhibit 13',`<p>In September 2024 the "Data for Generative AI Improvement" setting appeared already switched on, training had already begun, and the privacy policy was updated afterwards. The UK ICO objected and UK training was paused; the EU was excluded — then included in 2025 as opt-out. The same month, the Irish DPC fined LinkedIn €310M over unlawful behavioural advertising. History rhymes: the 2012 breach exposed 117M unsalted SHA-1 passwords, and the 2021 sale of 700M scraped profiles was "not a breach."</p>`,['ai24','ico','dpc','breach','scrape'])}
+    </div>
+  </section>
+  <aside class="rail"><div class="card card-body"><h2 style="font-size:14px">Who viewed your profile</h2>
+    <div class="blur-row">${PEOPLE.slice(0,4).map(p=>`<div class="avatar sm" style="background:${p[2]}">${p[0][0]}</div>`).join('')}</div><div class="tiny">${47+S.views} viewers in 90 days. 5 shown. 31 were search-result appearances.</div><button class="btn gold sm" style="margin-top:8px" onclick="openPremium()">🔒 Unlock all</button></div>
+    <div class="card card-body"><h2 style="font-size:14px">Profile strength</h2><div class="meter" style="margin:8px 0"><i style="width:97%"></i></div><div class="tiny">All-Star. Add 14 more skills to reach All-Star.</div></div>
+  </aside></div>`;
+}
+function collabHTML(){const [q,topic]=COLLAB[S.badges.length%COLLAB.length];return `<div style="font-weight:600;font-size:14px">${esc(q)}</div><div class="tiny">Powered by AI and the LonkedOut community · Topic: ${topic}</div><div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn primary sm" onclick="collabAnswer('${esc(topic)}')">✨ Add your perspective (AI-drafted)</button><button class="btn ghost sm" onclick="toast('Skipped. The question was also skipped by its author, an LLM.')">Skip</button></div><div id="collabA" class="msg" style="display:none"></div>`}
+function collabAnswer(topic){const a=$('#collabA');a.style.display='block';a.textContent=`Great question! When it comes to ${topic.toLowerCase()}, it's important to communicate clearly, align on goals, and stay authentic. Leverage empathy. Iterate. Remember: it's not about the answer — it's about the journey.`;
+  setTimeout(()=>{S.badges.push('Top Voice in '+topic);unlock('top_voice');bump({clout:6,dig:-6});render();toast(`🏅 You are now a Top Voice in ${topic}. The badge is gold. The answer was 41 words.`)},1400)}
+function roulette(yes){const s=rnd(["Blockchain","Flash","COBOL","Synergy","Quantum Pet Grooming","Feelings","Microsoft Excel","Vibes"]);$('#rskill').textContent=s;if(yes){unlock('endorsed');bump({dig:-1})}toast(yes?'Thanks! Marcus has never heard of that.':'Skipped. Asking again in 4 seconds.')}
+function headline(){const a=["Founder","Ex-Google","Ex-Meta (rejected)","Keynote Speaker","Top Voice","Investor","Girl Dad","Human","Visionary","Serial Entrepreneur","Author","Ex-Unemployed","CEO (of myself)","Helping X do Y with Z","Thought Leader","Podcast Host (3 episodes)","Angel (no money)","Builder","Dreamer","Ex-Barista"];const h=[...new Set([rnd(a),rnd(a),rnd(a),rnd(a),rnd(a)])].join(' | ');YOU[1]=h;const e=$('#hl');if(e)e.textContent=h;bump({clout:2,dig:-2});toast('Headline updated. You are now five things.')}
+
+/* ───────────────────────── games ───────────────────────── */
+const PIN=[["Humbled","Honored","Thrilled","Grateful","Excited"],"Ways to say 'I got a job'"];
+let pinIdx=0;
+/* Qeens: 5x5, regions, one crown per row/col/region, no touching */
+const QREG=[[0,0,1,1,1],[0,0,1,2,1],[3,0,2,2,2],[3,3,3,4,2],[3,4,4,4,4]];
+const QCOL=['#f7c59f','#a8dadc','#c7e9b0','#e0bbe4','#ffe08a'];
+let qb=Array(25).fill(0);
+function qHTML(){return QREG.flat().map((r,i)=>`<button style="background:${QCOL[r]}" onclick="qTap(${i})" aria-label="cell ${i}">${qb[i]===1?'✕':qb[i]===2?'👑':''}</button>`).join('')}
+function qTap(i){qb[i]=(qb[i]+1)%3;$('#qgrid').innerHTML=qHTML();qCheck()}
+function qCheck(){const crowns=qb.map((v,i)=>v===2?i:-1).filter(i=>i>=0);const rows=new Set(),cols=new Set(),regs=new Set();let ok=true;
+  crowns.forEach(i=>{const r=i/5|0,c=i%5;if(rows.has(r)||cols.has(c)||regs.has(QREG[r][c]))ok=false;rows.add(r);cols.add(c);regs.add(QREG[r][c]);
+    crowns.forEach(j=>{if(j!==i&&Math.abs((j/5|0)-r)<=1&&Math.abs(j%5-c)<=1)ok=false})});
+  const s=$('#qstat');if(crowns.length===5&&ok){s.textContent='👑 Solved! Your time has been shared with your manager.';unlock('qeens');bump({clout:3,burn:-5})}else s.textContent=ok?`${crowns.length}/5 crowns placed.`:'Conflict: crowns can\'t share a row, column, colour, or touch.'}
+function games(){
+  return `<div class="page two"><section>
+    <div class="card"><div class="card-body"><h2>Qeens</h2><div class="muted">Place one 👑 in every row, column, and colour region. Crowns can't touch, even diagonally. Tap a cell to cycle: ✕ → 👑 → empty.</div>
+      <div class="qgrid" id="qgrid">${qHTML()}</div><div class="tiny" id="qstat">0/5 crowns placed.</div>
+      <button class="btn sm" style="margin-top:8px" onclick="qb=Array(25).fill(0);document.getElementById('qgrid').innerHTML=qHTML();document.getElementById('qstat').textContent='Reset.'">Reset</button></div></div>
+    <div class="card"><div class="card-body"><h2>Cringe Bingo</h2><div class="muted">Mark what you've seen in the feed today. Five in a row means you've been on here too long.</div>
+      <div class="bingo" style="margin-top:10px">${BINGO.map((b,i)=>`<button aria-pressed="${i===14}" onclick="bingoT(this)">${b}</button>`).join('')}</div>
+      <div class="tiny" id="bingoS" style="margin-top:8px">1 marked.</div></div></div>
+    <div class="card"><div class="card-body"><h2>Pinpoint, but professional</h2><div class="muted">Guess the category. Clues reveal one at a time.</div>
+      <div class="row" style="margin:10px 0;flex-wrap:wrap" id="pinClues">${PIN[0].slice(0,pinIdx+1).map(c=>`<span class="pill acc" style="font-size:13px;padding:4px 10px">${c}</span>`).join('')}</div>
+      <div class="guess"><button onclick="pinGuess(false)">Synonyms for 'tired'</button><button onclick="pinGuess(true)">Ways to say 'I got a job'</button><button onclick="pinGuess(false)">Emotions a CEO can have</button><button onclick="pinClue()">Reveal another clue</button></div></div>
+      ${note('Why there are games','exhibit 14',`<p>Queens, Pinpoint, Crossclimb (May 2024), Tango, Zip, Mini Sudoku, and connection leaderboards. LinkedIn reports 84% of players return the next day. Daily-active-over-monthly-active ratio rose from 0.38 to 0.42 — the metric this is for. Reporting at the time: "LinkedIn is adding games, for some reason."</p>`,['games','games2'])}
+    </div>
+  </section>
+  <aside class="rail"><div class="card card-body"><h2 style="font-size:14px">Connection leaderboard</h2><div class="lb" style="margin-top:6px">${PEOPLE.slice(0,5).map((p,i)=>`<div><span>${i+1}. ${nameBtn(p)}</span><span class="mono">${(5-i)*17}s</span></div>`).join('')}<div><span>6. You</span><span class="mono">—</span></div></div><div class="tiny" style="margin-top:6px">Your manager can see this.</div><button class="btn sm" style="margin-top:8px" onclick="toast('Score shared to your feed. 3 likes. One from your manager.');bump({dig:-3,clout:2})">Share score</button></div></aside></div>`;
+}
+function bingoT(b){const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);const cells=[...document.querySelectorAll('.bingo button')].map(x=>x.getAttribute('aria-pressed')==='true');const n=cells.filter(Boolean).length;
+  const lines=[];for(let i=0;i<5;i++){lines.push([0,1,2,3,4].map(j=>i*5+j));lines.push([0,1,2,3,4].map(j=>j*5+i))}lines.push([0,6,12,18,24],[4,8,12,16,20]);const win=lines.some(l=>l.every(i=>cells[i]));
+  $('#bingoS').textContent=n+' marked.'+(win?' BINGO. Log off.':'');if(win){unlock('bingo');bump({burn:5})}}
+function pinClue(){pinIdx=Math.min(4,pinIdx+1);$('#pinClues').innerHTML=PIN[0].slice(0,pinIdx+1).map(c=>`<span class="pill acc" style="font-size:13px;padding:4px 10px">${c}</span>`).join('')}
+function pinGuess(ok){toast(ok?'Correct! Share your score to 500+ people who did not ask.':'Wrong. Your streak has been posted to your connections.');bump(ok?{clout:1}:{dig:-1})}
+
+/* ───────────────────────── premium ───────────────────────── */
+let trial=false;
+function premium(){
+  return `<div class="page wide"><section style="max-width:760px;margin:0 auto">
+    <div class="card" style="border-top:4px solid var(--gold)"><div class="card-body"><span class="pill gold">PREMIUM</span><h1 style="font-size:26px;margin-top:6px">Unlock the parts of the product we took away.</h1>
+      <p class="muted" style="max-width:60ch">See who viewed your profile (we count search results). Be a Top Applicant (top half). Rewrite with AI (we'll suppress it). InMail strangers (they'll get their credit back). Prices shown after you enter a card.</p>
+      ${trial?`<div class="card-body" style="background:var(--gold-soft);border-radius:8px;margin:10px 0"><b>Your trial is active.</b> <span class="muted">Renews at $39.99/mo in 30 days.</span> <button class="btn sm" style="margin-left:8px" onclick="cancel1()">Cancel</button></div>`:''}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:14px">
+        ${[['Career','$39.99/mo','was $29.99','Applicant insights, who viewed you'],['Business','$69.99/mo','was $59.99','Unlimited browsing of people who won\'t reply'],['Recruiter Lite','$170/mo','','30 InMails, refunded on reply'],['Sales Navigator','$99.99/mo','','The spam DMs, but from your side']].map(p=>`<div style="border:1px solid var(--line);border-radius:8px;padding:12px"><div style="font-weight:600">${p[0]}</div><div class="counter" style="font-size:20px">${p[1]}</div><div class="tiny">${p[2]}</div><div class="muted" style="font-size:12px;margin-top:6px">${p[3]}</div><button class="btn gold sm" style="margin-top:8px" onclick="openPremium('Start your free trial of ${p[0]}','Cancel anytime — the Cancel button is three screens deep and changes position on the last one.')">Try free</button></div>`).join('')}
+      </div></div>
+      ${note('Monetizing the dysfunction','exhibit 15',`<p>Premium revenue passed $1.7B in FY2024 and ~$2B in 2025, credited to AI features. Career tier rose from $29.99 to $39.99. The pricing page hides prices until you start a trial. "Top Applicant" means top 50% of a pile that was 1,000+ deep within an hour, marketed as "2.6× more likely to get hired." The Texas AG's July 2026 probe targets exactly these representations. Harry Brignull's deceptive.design library lists LinkedIn as a featured brand. Start a trial, then try to cancel it.</p>`,['prem','price','topapp','txag','dd','viewed'])}
+    </div>
+  </section></div>`;
+}
+/* cancel maze */
+function cancel1(){modal(`<h2>Are you sure you want to lose access?</h2><p class="muted">You'll lose: Top Applicant status (top 50%), 5 blurred profile viewers, and em dashes.</p><div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn gold" onclick="closeModal();toast('Great choice! Renewing.')">Keep Premium</button><button class="btn ghost sm" onclick="cancel2()">Continue cancelling</button></div>`)}
+function cancel2(){modal(`<h2>Wait — here's 50% off.</h2><p class="muted">$19.99/mo for 2 months, then $39.99/mo forever. This offer expires when you close this box.</p><div class="row" style="margin-top:10px;flex-wrap:wrap"><button class="btn ghost sm" onclick="cancel3()">No thanks</button><button class="btn gold" onclick="closeModal();toast('Offer accepted. You now pay slightly less to be a Top Applicant.')">Accept offer</button></div>`)}
+function cancel3(){modal(`<h2>Tell us why you're leaving</h2><div class="stack" style="margin-top:8px">${['Too expensive','Didn\'t get a job','Top Applicant meant nothing','I found the Cancel button on my own','Dignity'].map(r=>`<label class="row"><input type="radio" name="why"> ${r}</label>`).join('')}</div><div class="row" style="margin-top:12px;flex-wrap:wrap;justify-content:space-between"><button class="btn gold" onclick="closeModal();toast('Feedback saved. Subscription kept.')">Submit feedback</button><button class="decline" style="margin:0" onclick="cancel4()">cancel subscription</button></div>`)}
+function cancel4(){const bs=['Keep Premium','Keep Premium','Cancel','Keep Premium'].sort(()=>Math.random()-.5);modal(`<h2>Confirm</h2><p class="muted">One of these cancels. They all look the same.</p><div class="row" style="margin-top:10px;flex-wrap:wrap">${bs.map(b=>`<button class="btn gold" onclick="${b==='Cancel'?'cancelDone()':"closeModal();toast('Kept! See you at renewal.')"}">${b}</button>`).join('')}</div>`)}
+function cancelDone(){trial=false;closeModal();unlock('cancelled');bump({dig:10});render();toast('Cancelled. A win-back email is already in your inbox.')}
+function openPremium(t,b){modal(`<span class="pill gold">PREMIUM</span><h2 style="margin-top:6px">${esc(t||'Someone at a Fortune 500 company viewed your profile.')}</h2><p class="muted">${esc(b||'Unlock Premium to see who. (It was a recruiter\'s automated search. It counts as a view.)')}</p>
+  <div class="blur-row">${PEOPLE.slice(0,5).map(p=>`<div class="avatar sm" style="background:${p[2]};cursor:default">${p[0][0]}</div>`).join('')}</div>
+  <button class="btn gold" onclick="startTrial()">Start your free 1-month trial</button>
+  <div class="price">Then $39.99/mo. Price shown after you've entered a card. Cancel via a flow where the buttons swap places.</div>
+  <br><button class="decline" onclick="closeModal();bump({dig:1})">No thanks, I prefer not to be a Top Applicant</button>`)}
+function startTrial(){trial=true;closeModal();unlock('premium');bump({clout:5,dig:-8});toast('Trial started. Nothing was charged because nothing here is real. Now try to cancel it (Premium tab).');addNotif('Welcome to Premium! You are now a Top Applicant (top 50%) for 1,000+ jobs.');if(S.view==='premium')render()}
+
+/* ───────────────────────── receipts ───────────────────────── */
+const RECEIPTS = [
+ ["AI slop",["54% of 100+ word posts likely AI (to Oct 2024) → 81.2% of long-form (Jul 2026)","Median post engagement −56% YoY in 2025","LinkedIn ships 'Rewrite with AI' and AI comment suggestions, then a 94%-accuracy classifier that suppresses generic posts"],["orig24","orig26","forbes56","tnw"]],
+ ["Formats & genres",["Broetry named by BuzzFeed News, 2017","Crying-CEO selfie (2022) galvanised backlash culture","'My wife died. Here's what it taught me about B2B sales' — Poe's law","Hustle-culture backlash: 2025 'authenticity shift'"],["broetry","crying","grief","hustle","lunatics"]],
+ ["Top Voice & collaborative articles",["AI-generated prompts answered with AI text for an auto-awarded gold badge; 10M+ contributions","Gold badge retired Oct 8, 2024 ('participation trophy')"],["topvoice","topvoice2"]],
+ ["Algorithm",["van der Blom 2025: views −50%, engagement −25%, follower growth −59% YoY","External-link penalty of 40–60% is vendor folklore; a 2026 study of 400k posts found the opposite","Polls −60%, 'Agree?' CTAs −40% after 2026 'authenticity update' (vendor figures)"],["vdb","links","polls"]],
+ ["Job search",["~11,000 applications per minute, +45% YoY","Easy Apply response rate 3–13%; 34% of recruiters spend up to half the week filtering bot applications","Ghost jobs: 27.4% of US listings inactive (ResumeUp); 18–22% on Greenhouse; 4 in 10 companies admit posting fakes","Texas AG investigation (Jul 2026) into Premium-gated fake jobs","'Top Applicant' = top 50% of applicants"],["nyt","cnbcfire","easy","ghost1","ghost2","ghost3","txag","topapp","seekers"]],
+ ["Premium & dark patterns",["Premium revenue $1.7B (FY2024); Career tier $29.99 → $39.99","Free users see 5 viewers; search-result appearances count as views","Featured brand on deceptive.design","$13M Perkins settlement (2015) for 'Add Connections' reminder emails"],["prem","price","viewed","viewed2","dd","perkins"]],
+ ["Data & privacy",["Sept 2024: generative-AI training enabled by default before the policy changed; UK paused after ICO","€310M Irish DPC fine (Oct 2024)","2012 breach: 117M unsalted SHA-1 passwords","2021: 700M scraped records for sale, 'not a breach'"],["ai24","ico","dpc","breach","scrape"]],
+ ["Messaging",["InMail credits refunded on any reply, subsidising spray-and-pray","Recruiter ghosting threads; scams from verified accounts; 100M+ ID-verified profiles"],["inmail","blindghost","verify"]],
+ ["Engagement features",["Games launched May 2024; DAU/MAU 0.38→0.42; 84% day-1 return","Vertical video feed (2024–25)","'People also viewed' opt-out removed (2024)"],["games","games2","video","pav"]],
+ ["Open to Work & vanity",["220M users; LinkedIn claims 2× recruiter messages","Recruiter poll 70% good / 7% bad; 'biggest red flag' vs 'selling you something'","Endorsed language matches real language <50% of the time","'500+ connections' as hustle-culture vanity"],["otw","otw2","endorse","c500"]],
+];
+function receipts(){
+  return `<div class="page wide"><section style="max-width:820px;margin:0 auto">
+    <div class="card"><div class="card-body"><h1 style="font-size:24px">Receipts</h1><p class="muted" style="max-width:65ch">Every joke on this site is load-bearing. Here is the research behind each exhibit, grouped by complaint, with the source for every number. Stats marked as vendor data come from companies selling LinkedIn tools and should be read as directional.</p></div>
+      ${RECEIPTS.map(r=>`<div class="receipt"><h3>${r[0]}</h3>${r[1].map(s=>`<div class="stat2">▸ ${s}</div>`).join('')}<ul>${r[2].map(k=>`<li><a href="${SRC[k][1]}" target="_blank" rel="noopener">${SRC[k][0]}</a></li>`).join('')}</ul></div>`).join('')}
+      <div class="card-body"><h3 style="font-size:15px;font-weight:600">On the legal question</h3><p class="muted" style="font-size:13px;max-width:65ch">Not legal advice. US parody doctrine (Campbell v. Acuff-Rose; Louis Vuitton v. Haute Diggity Dog; Jack Daniel's v. VIP 2023 and its 2026 remand) protects obvious, non-commercial commentary best. That is why this site has its own name, logo and colours, no login, no data collection, no ads, and a disclaimer on every screen. Each step toward looking or acting like the real service — a sign-up form, a job board, a paid tier — moves it toward risk. <a href="https://www.law.cornell.edu/uscode/text/15/1125" target="_blank" rel="noopener">15 U.S.C. §1125(c)(3)</a> · <a href="https://supreme.justia.com/cases/federal/us/599/22-148/" target="_blank" rel="noopener">Jack Daniel's v. VIP</a> · <a href="https://www.eff.org/wp/tips-shutting-down-g" target="_blank" rel="noopener">EFF on parody/gripe sites</a></p></div>
+    </div></section></div>`;
+}
+
+/* ───────────────────────── modal / misc ───────────────────────── */
+function modal(html){$('#modal').innerHTML=`<button class="x" onclick="closeModal()" aria-label="Close">✕</button>${html}`;$('#modalbg').classList.add('show')}
+function closeModal(){$('#modalbg').classList.remove('show')}
+$('#modalbg').addEventListener('click',e=>{if(e.target.id==='modalbg')closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closePop()}});
+
+function afterRender(){
+  document.querySelectorAll('.live').forEach(el=>{let n=+el.dataset.n;if(n>=1000)return;el._iv=setInterval(()=>{if(!document.body.contains(el)){clearInterval(el._iv);return}n+=Math.floor(Math.random()*3)+1;el.textContent=n>=1000?'1,000+':n;if(n>=1000)clearInterval(el._iv)},900+Math.random()*1500)});
+  const a=$('#appsMin');if(a){let n=11000;a._iv=setInterval(()=>{if(!document.body.contains(a)){clearInterval(a._iv);return}n+=Math.floor(Math.random()*40)+10;a.textContent=n.toLocaleString()},500)}
+}
+/* ambient nags */
+const t0=Date.now();
+setInterval(()=>{const m=$('#mins');if(m)m.textContent=Math.floor((Date.now()-t0)/60000)},5000);
+setInterval(()=>{if(Math.random()<.5)addNotif(rnd(NOTIFS))},14000);
+setInterval(()=>{bump({burn:1})},30000);
+setTimeout(()=>{if(!$('#modalbg').classList.contains('show'))openPremium()},45000);
+setInterval(()=>{if(!$('#modalbg').classList.contains('show')&&Math.random()<.4)openPremium()},120000);
+
+renderStrip();render();
+</script>
